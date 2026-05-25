@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PHANTOM — Avionics HUD</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --phosphor: #0088cc;
+  --phosphor-dim: #cceeff;
+  --phosphor-mid: #3399cc;
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --border: #d0d8e0;
+  --text: #1a2a3a;
+  --text-dim: #8090a0;
+  --speed: #00aadd;
+  --gear: #dd8800;
+  --rpm: #ee4433;
+  --amber: #ee8800;
+  --red: #dd2244;
+  --cyan: #0066aa;
+  --green: #00aa44;
+  --purple: #8844cc;
+  --font: 'Share Tech Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; overflow: hidden; height: 100vh; display: flex; flex-direction: column; padding: 4px; }
+
+/* Scan line overlay */
+body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,100,180,0.03) 2px, rgba(0,100,180,0.03) 4px);
+}
+
+/* Button bar */
+.btn-bar { display: flex; gap: 2px; padding: 4px 8px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; align-items: center; }
+.btn-bar button { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--font); font-size: 13px; padding: 3px 8px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+.btn-bar button:hover { border-color: var(--phosphor); color: var(--phosphor); }
+.btn-bar button:active { background: rgba(0,100,180,0.08); }
+.btn-bar kbd { font-family: var(--font); font-size: 10px; color: var(--phosphor); background: rgba(0,100,180,0.08); padding: 1px 4px; border-radius: 2px; border: 1px solid rgba(0,100,180,0.2); margin-left: 4px; }
+.btn-bar .spacer { flex: 1; }
+
+/* Settings */
+#settingsTrigger { position: fixed; top: 6px; right: 10px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-size: 14px; cursor: pointer; z-index: 100; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+#settingsTrigger:hover { border-color: var(--phosphor); color: var(--phosphor); }
+#settingsOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 200; }
+#settingsOverlay.active { opacity: 1; pointer-events: auto; }
+#settingsDrawer { position: fixed; top: 0; right: 0; width: 280px; height: 100vh; background: var(--surface); border-left: 1px solid var(--phosphor-dim); transform: translateX(100%); transition: transform 0.2s; padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 201; }
+#settingsDrawer.active { transform: translateX(0); }
+.setting-row { display: flex; flex-direction: column; gap: 3px; }
+.setting-row label { color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 2px; }
+.setting-row input, .setting-row select { background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: var(--font); font-size: 11px; padding: 4px; }
+.toggle-switch { width: 36px; height: 18px; cursor: pointer; }
+.toggle-track { width: 100%; height: 100%; background: var(--border); border: 1px solid var(--text-dim); }
+.toggle-switch.active .toggle-track { background: var(--phosphor-dim); border-color: var(--phosphor); }
+.settings-actions { display: flex; gap: 8px; margin-top: auto; }
+.settings-actions button { flex: 1; background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--font); font-size: 11px; padding: 4px; cursor: pointer; }
+.settings-actions button:last-child { border-color: var(--phosphor-dim); color: var(--phosphor); }
+.settings-actions button:last-child:hover { background: rgba(0,100,180,0.08); }
+
+/* Tab bar */
+.tab-bar { display: flex; background: var(--surface); border-bottom: 1px solid var(--gear); flex-shrink: 0; }
+.tab-btn { flex: 1; padding: 8px 0; background: var(--bg); border: none; border-bottom: 3px solid var(--border); color: var(--text-dim); font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 3px; cursor: pointer; font-weight: normal; }
+.tab-btn.active { color: #fff; background: var(--gear); border-bottom-color: var(--gear); font-weight: bold; font-size: 13px; }
+.tab-btn:hover:not(.active) { color: var(--text); background: var(--surface); }
+.tab-content { flex: 1; overflow: hidden; position: relative; }
+.tab-pane { display: none; position: absolute; inset: 0; min-height: 0; }
+.tab-pane.active { display: flex; min-height: 0; }
+
+/* LIVE tab — track top, curves bottom */
+#tab-live { flex-direction: column; }
+.live-track-wrap { flex: 7; position: relative; overflow: hidden; min-height: 0; background: #e8ecf0; }
+.live-track-wrap #trackCanvas { width: 100%; height: 100%; display: block; }
+
+/* Left column: 3 canvases only */
+.overlay-left-col { position: absolute; top: 10px; bottom: 10px; left: 16px; width: 280px; display: flex; flex-direction: column; gap: 6px; z-index: 10; pointer-events: none; }
+.shift-light { height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; font-family: var(--font); color: var(--text-dim); background: rgba(0,0,0,0.06); border-radius: 3px; transition: all 0.1s; padding: 0 6px; }
+.shift-light.active-clutch { color: #fff; background: #8844cc; box-shadow: 0 0 10px rgba(136,68,204,0.7); }
+.shift-light.active-up { color: #fff; background: #00aa44; box-shadow: 0 0 10px rgba(0,170,68,0.7); }
+.shift-light.active-down { color: #fff; background: #ee4433; box-shadow: 0 0 10px rgba(238,68,51,0.7); }
+
+/* Canvas wrapper */
+.overlay-cv-wrap { flex: 1; min-height: 0; position: relative; border-radius: 6px; overflow: hidden; }
+.overlay-cv-wrap canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+
+/* Status card (TURBO/FUEL/PWR/TRQ) in left column */
+.overlay-status-card { flex-shrink: 0; background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; font-size: 13px; }
+.overlay-status-card b { font-size: 14px; font-weight: bold; }
+
+/* Bottom bar: speed/gear/rpm + shifts + race info */
+.overlay-race-bar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 10; pointer-events: none; background: rgba(255,255,255,0.88); padding: 6px 16px; border-radius: 8px; white-space: nowrap; }
+.orb-row1 { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+.orb-row1 b { font-size: 15px; }
+.orb-big { font-size: 22px; font-weight: bold; font-variant-numeric: tabular-nums; display: inline-block; min-width: 2ch; text-align: right; }
+.orb-big-lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+.orb-sep { color: var(--border); margin: 0 2px; }
+
+/* Bottom: curves with labels (fixed height) */
+.live-curves { flex: 3; display: flex; gap: 0; min-height: 0; background: var(--surface); border-top: 1px solid var(--border); }
+.curve-wrap { flex: 1; position: relative; min-height: 0; border-right: 1px solid var(--border); }
+.curve-wrap:last-child { border-right: none; }
+.curve-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; padding: 3px 6px; background: var(--bg); text-align: center; border-bottom: 1px solid var(--border); font-weight: bold; }
+.curve-wrap canvas { position: absolute; top: 18px; left: 0; width: 100%; height: calc(100% - 18px); display: block; }
+
+/* Car info panel (left of curves) */
+.curve-info-panel { width: 170px; flex: none; background: var(--surface); border-right: 1px solid var(--border); padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.cip-title { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 2px; font-weight: bold; }
+.cip-row { display: flex; justify-content: space-between; font-size: 12px; }
+.cip-row span { color: var(--text-dim); }
+.cip-row b { color: var(--text); font-size: 13px; }
+.cip-shift { font-size: 11px; color: var(--phosphor); line-height: 1.5; overflow: hidden; }
+
+/* ANALYSIS tab (merged with Log) */
+#tab-analysis.active { display: flex; gap: 8px; padding: 6px; }
+.analysis-left-panel { width: 45%; display: flex; flex-direction: column; border-right: 1px solid var(--border); flex-shrink: 0; }
+.analysis-log-header { display: flex; justify-content: space-between; padding: 4px 0; font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
+.analysis-log-header button { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font-family: var(--font); font-size: 10px; cursor: pointer; padding: 2px 8px; }
+#tab-analysis #logPanel { flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); padding: 4px; font-size: 11px; color: var(--phosphor-mid); line-height: 1.4; white-space: pre-wrap; user-select: text; -webkit-user-select: text; }
+.analysis-right-panel { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.analysis-shifts h4 { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; font-weight: normal; }
+.analysis-curve { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.analysis-curve h4 { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; font-weight: normal; }
+.analysis-chart { flex: 1; position: relative; min-height: 0; }
+.analysis-chart canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+.chart-title { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; padding: 3px 0; font-weight: bold; flex-shrink: 0; }
+.shift-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.shift-table th, .shift-table td { border: 1px solid var(--border); padding: 3px 8px; text-align: center; }
+.shift-table th { color: var(--text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 1px; }
+.shift-table td { color: var(--gear); }
+.analysis-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 11px; letter-spacing: 2px; border: 1px dashed var(--border); min-height: 80px; }
+.analysis-charts { flex: 1; display: flex; flex-direction: column; gap: 4px; min-height: 0; display: none; }
+.analysis-charts.active { display: flex; }
+#logPanel { flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); padding: 4px; font-size: 11px; color: var(--phosphor-mid); line-height: 1.4; white-space: pre-wrap; user-select: text; -webkit-user-select: text; }
+
+/* Recording overlay */
+#recordingOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 300; }
+#recordingList { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--surface); border: 1px solid var(--phosphor-dim); padding: 16px; max-height: 80vh; overflow-y: auto; min-width: 300px; }
+</style>
+</head>
+<body>
+
+<!-- Button bar -->
+<div class="btn-bar">
+  <button id="btnCollect" data-i18n="COLLECT_BUTTON_TXT">COLLECT <kbd>F2</kbd></button>
+  <button id="btnAnalyze" data-i18n="ANALYSIS_BUTTON_TXT">ANALYZE <kbd>F3</kbd></button>
+  <button id="btnRun" data-i18n="RUN_BUTTON_TXT">AUTO <kbd>F4</kbd></button>
+  <button id="btnRecord" data-i18n="RECORD_TXT">REC <kbd>F5</kbd></button>
+  <button id="btnPause" data-i18n="PAUSE_BUTTON_TXT">PAUSE <kbd>F9</kbd></button>
+  <button id="btnPlayback" data-i18n="PLAYBACK_TXT">PLAYBACK</button>
+  <div class="spacer"></div>
+</div>
+
+<!-- Settings -->
+<button id="settingsTrigger">&#9881;</button>
+<div id="settingsOverlay"></div>
+<div id="settingsDrawer">
+  <div class="setting-row"><label data-i18n="CONNECTION_TXT">Connection</label><input type="text" id="settingIp" placeholder="IP"><input type="number" id="settingPort" placeholder="Port"></div>
+  <div class="setting-row"><label data-i18n="SELECT_LANGUAGE_TXT">Language</label><select id="settingLang"><option value="0">中文</option><option value="1">English</option></select></div>
+  <div class="setting-row"><label data-i18n="DISPLAY_THEME_TXT">Theme</label><select id="themeSelect"></select></div>
+  <div class="setting-row"><label data-i18n="CLUTCH_TXT">Clutch</label><div id="toggleClutch" class="toggle-switch"><div class="toggle-track"></div></div></div>
+  <div class="setting-row"><label data-i18n="FARM_TXT">Farm Mode</label><div id="toggleFarm" class="toggle-switch"><div class="toggle-track"></div></div></div>
+  <div class="setting-row"><label data-i18n="OFFROAD_RALLY_TXT">Offroad Rally</label><div id="toggleOffroad" class="toggle-switch"><div class="toggle-track"></div></div></div>
+  <div class="setting-row"><label data-i18n="CLUTCH_SHORTCUT_TXT">Clutch Key</label><select id="shortcutClutch"></select></div>
+  <div class="setting-row"><label data-i18n="UPSHIFT_SHORTCUT_TXT">Upshift Key</label><select id="shortcutUpshift"></select></div>
+  <div class="setting-row"><label data-i18n="DOWNSHIFT_SHORTCUT_TXT">Downshift Key</label><select id="shortcutDownshift"></select></div>
+  <div class="settings-actions"><button id="settingsClose">X</button><button id="settingsConfirm" data-i18n="CONFIRM_TXT">CONFIRM</button></div>
+  <div style="margin-top:auto;padding-top:10px;border-top:1px solid var(--border);">
+    <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">About</div>
+    <div style="font-size:11px;color:var(--text-dim);line-height:1.8;">
+      Horizon6AutoGear v2.0<br>
+      Phantom Theme · FH6 · 60Hz<br>
+      <span style="color:var(--text);">F1</span> Live · <span style="color:var(--text);">F2</span> Collect · <span style="color:var(--text);">F3</span> Analyze<br>
+      <span style="color:var(--text);">F4</span> Auto · <span style="color:var(--text);">F5</span> Record · <span style="color:var(--text);">F9</span> Pause<br>
+      <a href="https://github.com/Burlesque1/Horizon6AutoGear" style="color:var(--phosphor);text-decoration:none;">github.com/Burlesque1/Horizon6AutoGear</a>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="live">LIVE</button>
+  <button class="tab-btn" data-tab="analysis">ANALYSIS</button>
+</div>
+<div class="tab-content">
+  <!-- LIVE — track + curves only -->
+  <div class="tab-pane active" id="tab-live">
+    <!-- Track area — everything floats on this -->
+    <div class="live-track-wrap">
+      <canvas id="trackCanvas"></canvas>
+      <!-- Left column: status + 3 canvases -->
+      <div class="overlay-left-col">
+        <div class="overlay-status-card">
+          <span>TURBO <b id="boostVal" style="color:#8844cc;">0</b></span>
+          <span>FUEL <b id="fuelVal" style="color:#00aadd;">0%</b></span>
+          <span>PWR <b id="powerVal" style="color:#dd8800;">0</b>kW</span>
+          <span>TRQ <b id="torqueVal" style="color:#ee4433;">0</b>Nm</span>
+        </div>
+        <div class="overlay-cv-wrap" style="background:rgba(255,255,255,0.5);"><canvas id="tachoCanvas"></canvas></div>
+        <div class="overlay-cv-wrap" style="background:rgba(255,255,255,0.5);"><canvas id="gforceCanvas"></canvas></div>
+        <div class="overlay-cv-wrap" style="background:rgba(255,255,255,0.6);"><canvas id="tireCanvas"></canvas></div>
+      </div>
+      <!-- Bottom bar: speed/gear/rpm + shifts + race info -->
+      <div class="overlay-race-bar">
+        <div class="orb-row1">
+          <span><b class="orb-big" id="speedValue" style="color:var(--speed);">0</b> <span class="orb-big-lbl">km/h</span></span>
+          <span class="orb-sep">|</span>
+          <span><b class="orb-big" id="rpmValue" style="color:var(--rpm);">0</b> <span class="orb-big-lbl">RPM</span></span>
+          <span class="orb-sep">|</span>
+          <span>GEAR <b id="gearValue" style="color:var(--gear);font-size:20px;">N</b></span>
+          <div class="shift-light" id="shiftClutch">CLUTCH</div>
+          <div class="shift-light" id="shiftUp">UP</div>
+          <div class="shift-light" id="shiftDown">DOWN</div>
+          <span class="orb-sep">|</span>
+          <span>LAP <b id="raceLap" style="color:var(--gear);">--</b></span>
+          <span>TIME <b id="raceTime" style="color:var(--phosphor);">0:00</b></span>
+          <span>BEST <b id="raceBest" style="color:var(--green);">--:--</b></span>
+          <span>LAST <b id="raceLast" style="color:var(--cyan);">--:--</b></span>
+        </div>
+      </div>
+    </div>
+    <!-- Bottom: 3 curves side by side -->
+    <div class="live-curves">
+      <div class="curve-info-panel">
+        <div class="cip-title">Car</div>
+        <div class="cip-row"><span>ID</span><b id="carOrdinal">--</b></div>
+        <div class="cip-row"><span>CLASS</span><b id="carClass" style="color:var(--gear);">--</b></div>
+        <div class="cip-row"><span>PI</span><b id="carPerf">--</b></div>
+        <div class="cip-row"><span>DRIVE</span><b id="carDrive" style="color:var(--phosphor);">--</b></div>
+        <div class="cip-row"><span>CYL</span><b id="carCyl">-</b></div>
+        <div class="cip-row"><span>MAX RPM</span><b id="carMaxRpm">-</b></div>
+        <div class="cip-title" style="margin-top:4px;">Shift Points</div>
+        <div id="shiftPointsRow" class="cip-shift"></div>
+      </div>
+      <div class="curve-wrap"><div class="curve-label">RPM</div><canvas id="liveChartRpm"></canvas></div>
+      <div class="curve-wrap"><div class="curve-label">TIRE SLIP</div><canvas id="liveChartSlip"></canvas></div>
+      <div class="curve-wrap"><div class="curve-label">TORQUE</div><canvas id="liveChartTrq"></canvas></div>
+    </div>
+  </div>
+  <!-- ANALYSIS (merged with Log) -->
+  <div class="tab-pane" id="tab-analysis">
+    <div class="analysis-left-panel">
+      <div class="analysis-log-header"><span>System Log</span><button id="clearLogBtn" data-i18n="CLEAR_LOG_TXT">CLEAR</button></div>
+      <div id="logPanel"></div>
+    </div>
+    <div class="analysis-right-panel">
+      <div class="analysis-shifts">
+        <h4>Shift Points</h4>
+        <table class="shift-table"><thead><tr><th>Gear</th><th>RPM</th><th>km/h</th></tr></thead><tbody id="shiftPointBody"></tbody></table>
+      </div>
+      <div class="analysis-curve">
+        <h4>Torque Curves</h4>
+        <div id="analysisPlaceholder" class="analysis-placeholder">AWAITING ANALYSIS</div>
+        <div id="analysisCharts" class="analysis-charts">
+          <div class="analysis-chart"><div class="chart-title">Output Torque vs RPM</div><canvas id="analysisChartRpm"></canvas></div>
+          <div class="analysis-chart"><div class="chart-title">Output Torque vs Speed</div><canvas id="analysisChartSpeed"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Recording overlay -->
+<div id="recordingOverlay"><div id="recordingList"></div></div>
+
+<script src="../api.js"></script>
+<script>
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ===== LIVE TELEMETRY CHART =====
+var liveData = { rpm: [], slip: [], trq: [] };
+var LIVE_MAX = 300;
+var _dpr = window.devicePixelRatio || 1;
+
+function setupCanvas(id) {
+  var c = document.getElementById(id);
+  if (!c) return null;
+  var ctx = c.getContext('2d');
+  var rect = c.getBoundingClientRect();
+  var W = rect.width || parseFloat(c.style.width) || c.width;
+  var H = rect.height || parseFloat(c.style.height) || c.height;
+  if (W < 2 || H < 2) return null;
+  var pw = Math.round(W * _dpr), ph = Math.round(H * _dpr);
+  if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; }
+  ctx.setTransform(_dpr, 0, 0, _dpr, 0, 0);
+  return { c: c, ctx: ctx, W: W, H: H };
+}
+
+function pushLiveData(d) {
+  var now = Date.now();
+  var maxRpm = parseFloat(d.engine_max_rpm) || 9000;
+  liveData.rpm.push({ t: now, v: parseFloat(d.rpm) || 0 });
+  var slip = 0;
+  if (d.tires) { ['FL','FR','RL','RR'].forEach(function(p) { var t = d.tires[p]; if (t) slip += Math.abs(t.combined_slip || 0); }); }
+  liveData.slip.push({ t: now, v: Math.min(slip / 4, 2) });
+  liveData.trq.push({ t: now, v: parseFloat(d.torque) || 0 });
+  for (var k in liveData) { while (liveData[k].length > LIVE_MAX) liveData[k].shift(); }
+}
+
+function drawMiniChart(canvasId, data, color, maxVal, label, unit) {
+  var s = setupCanvas(canvasId);
+  if (!s) return;
+  var ctx = s.ctx, W = s.W, H = s.H;
+  var leftPad = 36, bottomPad = 14, topPad = 6, rightPad = 4;
+  var plotW = W - leftPad - rightPad, plotH = H - bottomPad - topPad;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f0f4f8'; ctx.fillRect(0, 0, W, H);
+
+  // Y axis labels (0%, 50%, 100%)
+  ctx.fillStyle = '#8090a0'; ctx.font = '9px Share Tech Mono, monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(maxVal + unit, leftPad - 3, topPad + 8);
+  ctx.fillText(Math.round(maxVal/2) + unit, leftPad - 3, topPad + plotH/2 + 3);
+  ctx.fillText('0' + unit, leftPad - 3, topPad + plotH);
+
+  // Grid
+  ctx.strokeStyle = '#d0d8e0'; ctx.lineWidth = 0.5;
+  for (var i = 0; i <= 4; i++) {
+    var gy = topPad + plotH * i / 4;
+    ctx.beginPath(); ctx.moveTo(leftPad, gy); ctx.lineTo(W - rightPad, gy); ctx.stroke();
+  }
+  // Y axis line
+  ctx.beginPath(); ctx.moveTo(leftPad, topPad); ctx.lineTo(leftPad, topPad + plotH); ctx.stroke();
+
+  // X axis time labels
+  var totalSec = LIVE_MAX / 10; // ~30 samples/sec, LIVE_MAX=300 => ~30s
+  ctx.fillStyle = '#8090a0'; ctx.textAlign = 'center';
+  ctx.fillText('-' + totalSec + 's', leftPad + plotW * 0.1, H - 2);
+  ctx.fillText('-' + Math.round(totalSec/2) + 's', leftPad + plotW * 0.5, H - 2);
+  ctx.fillText('now', leftPad + plotW * 0.95, H - 2);
+
+  // Line
+  if (data.length < 2) return;
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (var j = 0; j < data.length; j++) {
+    var x = leftPad + (j / (LIVE_MAX - 1)) * plotW;
+    var y = topPad + plotH - (Math.min(data[j].v, maxVal) / maxVal) * plotH;
+    if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Shift event markers
+  if (data.length > 1) {
+    var tMin = data[0].t, tMax = data[data.length - 1].t, tRange = tMax - tMin;
+    if (tRange > 0) {
+      _shiftEvents = _shiftEvents.filter(function(e) { return e.t >= tMin; });
+      var shiftColors = { up: '#00aa44', down: '#dd2244', clutch: '#8844cc' };
+      var shiftLabels = { up: 'UP', down: 'DOWN', clutch: 'CLUTCH' };
+      for (var si = 0; si < _shiftEvents.length; si++) {
+        var evt = _shiftEvents[si];
+        var sx = leftPad + ((evt.t - tMin) / tRange) * plotW;
+        if (sx < leftPad || sx > W - rightPad) continue;
+        var sc = shiftColors[evt.type] || '#888';
+        // Vertical line
+        ctx.strokeStyle = sc; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(sx, topPad); ctx.lineTo(sx, topPad + plotH); ctx.stroke();
+        // Label background + text
+        var lbl = shiftLabels[evt.type] || '?';
+        ctx.font = 'bold 8px Share Tech Mono, monospace';
+        var lw = ctx.measureText(lbl).width + 4;
+        ctx.fillStyle = sc; ctx.fillRect(sx - lw/2, topPad, lw, 10);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+        ctx.fillText(lbl, sx, topPad + 8);
+      }
+    }
+  }
+
+  // Current value
+  if (data.length > 0) {
+    var last = data[data.length - 1].v;
+    ctx.fillStyle = color; ctx.font = 'bold 13px Share Tech Mono, monospace';
+    ctx.textAlign = 'right'; ctx.fillText(Math.round(last) + unit, W - rightPad - 2, 14);
+  }
+}
+
+// ===== G-FORCE BALL =====
+var gfTrail = [];
+var GF_MAX_TRAIL = 50;
+var _gfAx = 0, _gfAz = 0;
+
+function drawGForce(ax, az) {
+  var s = setupCanvas('gforceCanvas');
+  if (!s) return;
+  var ctx = s.ctx, W = s.W, H = s.H, cx = W/2, cy = H/2;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#e8ecf0'; ctx.fillRect(0, 0, W, H);
+
+  var maxR = Math.min(cx, cy) - 6;
+
+  // Background circle fill
+  ctx.fillStyle = '#dce4ec'; ctx.beginPath(); ctx.arc(cx, cy, maxR, 0, Math.PI * 2); ctx.fill();
+
+  // Grid circles (0.5G, 1G, 1.5G, 2G)
+  ctx.strokeStyle = '#b8c4d0'; ctx.lineWidth = 0.5;
+  for (var i = 1; i <= 4; i++) { ctx.beginPath(); ctx.arc(cx, cy, maxR * i / 4, 0, Math.PI * 2); ctx.stroke(); }
+  // Crosshair
+  ctx.strokeStyle = '#b8c4d0'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(cx - maxR, cy); ctx.lineTo(cx + maxR, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy - maxR); ctx.lineTo(cx, cy + maxR); ctx.stroke();
+
+  // Scale: maxR = 2G
+  var scale = maxR / 2;
+  // Clamp position to grid circle
+  var gMag = Math.sqrt(ax*ax + az*az);
+  var clampMag = Math.min(gMag, 2);
+  var clampedAx = gMag > 0 ? ax / gMag * clampMag : 0;
+  var clampedAz = gMag > 0 ? az / gMag * clampMag : 0;
+  var px = cx + clampedAx * scale;
+  var py = cy - clampedAz * scale;
+
+  // Trail (clamped)
+  gfTrail.push({ x: px, y: py, mag: gMag });
+  if (gfTrail.length > GF_MAX_TRAIL) gfTrail.shift();
+  if (gfTrail.length > 1) {
+    for (var i = 1; i < gfTrail.length; i++) {
+      var a = (i + 1) / gfTrail.length;
+      var m = gfTrail[i].mag;
+      var col = m > 1.5 ? '221,34,68' : m > 1.0 ? '238,136,0' : '0,170,68';
+      ctx.strokeStyle = 'rgba(' + col + ',' + (a * 0.6) + ')';
+      ctx.lineWidth = 1.5 * a;
+      ctx.beginPath();
+      ctx.moveTo(gfTrail[i-1].x, gfTrail[i-1].y);
+      ctx.lineTo(gfTrail[i].x, gfTrail[i].y);
+      ctx.stroke();
+    }
+  }
+
+  // Current dot
+  var dotColor = gMag > 1.5 ? '#dd2244' : gMag > 1.0 ? '#ee8800' : '#00aa44';
+  ctx.fillStyle = dotColor;
+  ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+  // Glow ring
+  ctx.strokeStyle = dotColor; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.3;
+  ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Axis labels + G value
+  ctx.fillStyle = '#8090a0'; ctx.font = '10px Share Tech Mono, monospace';
+  ctx.fillText('LAT', 2, 12); ctx.fillText('LON', cx + 4, H - 4);
+  ctx.fillStyle = dotColor; ctx.font = 'bold 12px Share Tech Mono, monospace';
+  ctx.textAlign = 'right'; ctx.fillText(gMag.toFixed(1) + 'G', W - 4, 12); ctx.textAlign = 'left';
+}
+
+// ===== 2D TRACK — COACH MAP =====
+var trackPts = [];
+var TRACK_MAX = 2000;
+
+function devColor(dev) {
+  // dev: norm_driving_line raw (-128..127), 0=on line
+  var t = Math.min(1, Math.abs(dev) / 80);
+  if (t < 0.3) { var f = t / 0.3; return 'rgb(' + Math.round(f * 200) + ',' + Math.round(200 - 30 * f) + ',' + Math.round(100 - 100 * f) + ')'; }
+  if (t < 0.7) { var f2 = (t - 0.3) / 0.4; return 'rgb(' + Math.round(200 + 40 * f2) + ',' + Math.round(170 - 100 * f2) + ',0)'; }
+  var f3 = (t - 0.7) / 0.3; return 'rgb(' + Math.round(240) + ',' + Math.round(70 - 50 * f3) + ',' + Math.round(30 * f3) + ')';
+}
+
+var trackDirty = false;
+
+function pushTrackData(d) {
+  // Forza Horizon: X=lateral, Y=forward/backward (ground), Z=altitude
+  // Use position_y (not position_z) for the vertical map axis
+  var px = parseFloat(d.position_x);
+  var py = parseFloat(d.position_y);
+  if (isNaN(px) || isNaN(py)) return;
+
+  trackPts.push({
+    x: px, z: py,
+    dev: parseInt(d.norm_driving_line) || 0,
+    brake: parseInt(d.norm_ai_brake_diff) || 0,
+    yaw: parseFloat(d.yaw) || 0,
+    spd: parseFloat(d.speed) || 0
+  });
+  if (trackPts.length > TRACK_MAX) trackPts.shift();
+  trackDirty = true;
+}
+
+function drawTrack() {
+  if (!trackDirty) return;
+  trackDirty = false;
+  var s = setupCanvas('trackCanvas');
+  if (!s) return;
+  var ctx = s.ctx, W = s.W, H = s.H;
+
+  // Background
+  ctx.fillStyle = '#e8ecf0'; ctx.fillRect(0, 0, W, H);
+  // Grid
+  ctx.strokeStyle = '#d0d8e0'; ctx.lineWidth = 0.5;
+  for (var gx = 0; gx < W; gx += 20) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+  for (var gy = 0; gy < H; gy += 20) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+  if (trackPts.length < 2) {
+    ctx.fillStyle = '#8090a0'; ctx.font = '11px Share Tech Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('COACH MAP', W/2, H/2 - 8);
+    ctx.fillText('Awaiting data...', W/2, H/2 + 8);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // Drawing area — exclude left overlay (280px + 16px margin) and bottom race bar
+  var mL = 300, mR = 20, mT = 20, mB = 60;
+  var areaW = W - mL - mR, areaH = H - mT - mB;
+
+  // Auto-fit bounds: x = position_x (lateral), z = position_y (forward)
+  var minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (var i = 0; i < trackPts.length; i++) {
+    if (trackPts[i].x < minX) minX = trackPts[i].x;
+    if (trackPts[i].x > maxX) maxX = trackPts[i].x;
+    if (trackPts[i].z < minZ) minZ = trackPts[i].z;
+    if (trackPts[i].z > maxZ) maxZ = trackPts[i].z;
+  }
+  var dx = (maxX - minX) || 1, dz = (maxZ - minZ) || 1;
+
+  // Auto-focus: if full track is too spread out, zoom into recent portion
+  var fullScale = Math.min(areaW / dx, areaH / dz);
+  if (fullScale < 0.3 && trackPts.length > 200) {
+    var focusN = Math.min(trackPts.length, 600);
+    var focusPts = trackPts.slice(-focusN);
+    minX = Infinity; maxX = -Infinity; minZ = Infinity; maxZ = -Infinity;
+    for (var fi = 0; fi < focusPts.length; fi++) {
+      if (focusPts[fi].x < minX) minX = focusPts[fi].x;
+      if (focusPts[fi].x > maxX) maxX = focusPts[fi].x;
+      if (focusPts[fi].z < minZ) minZ = focusPts[fi].z;
+      if (focusPts[fi].z > maxZ) maxZ = focusPts[fi].z;
+    }
+    dx = (maxX - minX) || 1; dz = (maxZ - minZ) || 1;
+  }
+
+  var scaleX = areaW / dx, scaleZ = areaH / dz;
+  var sc = Math.min(scaleX, scaleZ);
+  var offX = mL + (areaW - dx * sc) / 2;
+  var offY = mT + (areaH - dz * sc) / 2;
+
+  // Helper: world coords to canvas
+  function toCanvasX(wx) { return offX + (wx - minX) * sc; }
+  function toCanvasY(wz) { return offY + (maxZ - wz) * sc; }
+
+  // Compute offset scale for ideal line (relative to track span)
+  var avgStep = Math.sqrt(dx * dx + dz * dz) / trackPts.length;
+  var idealOffsetScale = Math.max(avgStep * 3, Math.min(dx, dz) * 0.04);
+
+  // 1. Draw ideal line (dashed, thin, gray-green)
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = 'rgba(0,170,68,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (var j = 0; j < trackPts.length; j++) {
+    var p = trackPts[j];
+    var normDev = Math.max(-1, Math.min(1, p.dev / 127));
+    var yawRad = p.yaw; // already in radians
+    var perpX = -Math.sin(yawRad);
+    var perpZ = Math.cos(yawRad);
+    var ix = p.x - normDev * idealOffsetScale * perpX;
+    var iz = p.z - normDev * idealOffsetScale * perpZ;
+    if (j === 0) ctx.moveTo(toCanvasX(ix), toCanvasY(iz));
+    else ctx.lineTo(toCanvasX(ix), toCanvasY(iz));
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 2. Draw player trajectory — colored by driving line deviation
+  var len = trackPts.length;
+  for (var j = 1; j < len; j++) {
+    var p0 = trackPts[j-1], p1 = trackPts[j];
+    var x0 = toCanvasX(p0.x), y0 = toCanvasY(p0.z);
+    var x1 = toCanvasX(p1.x), y1 = toCanvasY(p1.z);
+    var age = j / len;
+    ctx.strokeStyle = devColor(p1.dev);
+    ctx.globalAlpha = 0.1 + 0.9 * age;
+    ctx.lineWidth = 0.6 + 1.4 * age;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // 3. Brake point markers — where AI says to brake
+  for (var k = 0; k < len; k++) {
+    if (trackPts[k].brake < -80) {
+      var bx = toCanvasX(trackPts[k].x), by = toCanvasY(trackPts[k].z);
+      ctx.fillStyle = 'rgba(221,34,68,0.5)';
+      ctx.beginPath(); ctx.arc(bx, by, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // 4. Current position — heading arrow
+  // Forza yaw: 0 = facing +Z (canvas UP), CW from above
+  // Canvas: dx = sin(yaw), dy = -cos(yaw)  (Y-down canvas)
+  var last = trackPts[len - 1];
+  var lx = toCanvasX(last.x), ly = toCanvasY(last.z);
+  var ha = last.yaw;
+  var hdx = Math.sin(ha), hdy = -Math.cos(ha);
+  var al = 8;
+  ctx.strokeStyle = '#dd8800'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(lx - hdx * al * 0.4, ly - hdy * al * 0.4);
+  ctx.lineTo(lx + hdx * al, ly + hdy * al);
+  ctx.stroke();
+  var hx = lx + hdx * al, hy = ly + hdy * al;
+  ctx.fillStyle = '#dd8800'; ctx.beginPath();
+  ctx.moveTo(hx, hy);
+  ctx.lineTo(hx - Math.sin(ha - 0.5) * 5, hy + Math.cos(ha - 0.5) * 5);
+  ctx.lineTo(hx - Math.sin(ha + 0.5) * 5, hy + Math.cos(ha + 0.5) * 5);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(221,136,0,0.15)';
+  ctx.beginPath(); ctx.arc(lx, ly, 10, 0, Math.PI * 2); ctx.fill();
+
+  // 5. Legend bar (bottom-right of visible area) — deviation color scale
+  var legW = Math.min(200, areaW - 40);
+  var legX = W - mR - legW - 10, legY = H - mB + 8;
+  for (var li = 0; li < legW; li++) {
+    var fakeDev = (li / legW - 0.5) * 160;
+    ctx.fillStyle = devColor(fakeDev);
+    ctx.fillRect(legX + li, legY, 1, 4);
+  }
+  ctx.fillStyle = '#8090a0'; ctx.font = '9px Share Tech Mono, monospace';
+  ctx.textAlign = 'left'; ctx.fillText('OFF', legX, legY - 1);
+  ctx.textAlign = 'center'; ctx.fillText('ON LINE', legX + legW / 2, legY - 1);
+  ctx.textAlign = 'right'; ctx.fillText('OFF', legX + legW, legY - 1);
+  ctx.textAlign = 'center';
+  ctx.fillText('COACH MAP', mL + areaW / 2, 11);
+  ctx.textAlign = 'left';
+}
+
+// ===== TACHOMETER =====
+var _tachoRpm = 0, _tachoMax = 9000;
+function drawTacho() {
+  var s = setupCanvas('tachoCanvas');
+  if (!s) return;
+  var ctx = s.ctx, W = s.W, H = s.H;
+  var cx = W / 2, cy = H - 10;
+  var R = Math.max(50, Math.min(cx - 10, H - 20));
+  ctx.clearRect(0, 0, W, H);
+
+  var pct = Math.min(1, _tachoRpm / _tachoMax);
+
+  // Background semi-circle arc (dim)
+  ctx.lineWidth = 18; ctx.lineCap = 'butt';
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, Math.PI, 2 * Math.PI, false);
+  ctx.strokeStyle = '#d0d8e0';
+  ctx.stroke();
+
+  // Filled arc with color gradient (clockwise from left to right)
+  // Use segments for color zones
+  var segments = 60;
+  for (var i = 0; i < segments; i++) {
+    var segPct = i / segments;
+    if (segPct > pct) break;
+    var a1 = Math.PI + segPct * Math.PI;
+    var a2 = Math.PI + Math.min((i + 1) / segments, pct) * Math.PI;
+    // Color: green at 0%, yellow at 55%, orange at 75%, red at 85%+
+    var r, g, b;
+    if (segPct < 0.55) {
+      r = 0; g = 170; b = 68;
+    } else if (segPct < 0.75) {
+      var f = (segPct - 0.55) / 0.2;
+      r = Math.round(187 * f); g = Math.round(170 - 34 * f); b = Math.round(68 - 68 * f);
+    } else if (segPct < 0.85) {
+      var f2 = (segPct - 0.75) / 0.1;
+      r = Math.round(187 + 51 * f2); g = Math.round(136 - 68 * f2); b = 0;
+    } else {
+      r = 221; g = Math.round(68 - 68 * ((segPct - 0.85) / 0.15)); b = Math.round(68 * ((segPct - 0.85) / 0.15));
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, a1, a2, false);
+    ctx.strokeStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+    ctx.lineWidth = 18; ctx.stroke();
+  }
+
+  // Tick marks
+  for (var i = 0; i <= 10; i++) {
+    var angle = Math.PI + (i / 10) * Math.PI;
+    var cos = Math.cos(angle), sin = Math.sin(angle);
+    var inner = R - 28, outer = R - 14;
+    ctx.beginPath();
+    ctx.moveTo(cx + cos * inner, cy + sin * inner);
+    ctx.lineTo(cx + cos * outer, cy + sin * outer);
+    ctx.strokeStyle = '#8090a0';
+    ctx.lineWidth = i % 5 === 0 ? 2 : 1;
+    ctx.stroke();
+    if (i % 2 === 0) {
+      ctx.fillStyle = '#8090a0'; ctx.font = '11px Share Tech Mono, monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText((i) + '', cx + cos * (inner - 14), cy + sin * (inner - 14));
+    }
+  }
+
+  // Needle
+  var nAngle = Math.PI + pct * Math.PI;
+  var nLen = R - 34;
+  ctx.beginPath(); ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(nAngle) * nLen, cy + Math.sin(nAngle) * nLen);
+  ctx.strokeStyle = '#1a2a3a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt';
+
+  // Center dot
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a2a3a'; ctx.fill();
+
+  // RPM digital display below center
+  ctx.fillStyle = pct > 0.85 ? '#dd2244' : '#1a2a3a';
+  ctx.font = 'bold 26px Share Tech Mono, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(Math.round(_tachoRpm) + '', cx, cy - 40);
+  ctx.fillStyle = '#8090a0'; ctx.font = '10px Share Tech Mono, monospace';
+  ctx.fillText('RPM', cx, cy - 14);
+
+  // Red zone flash
+  if (pct > 0.85) {
+    ctx.fillStyle = 'rgba(221,34,68,' + (0.06 + 0.06 * Math.sin(Date.now() / 150)) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+
+// ===== TIRE VISUALIZATION =====
+var _tireData = { FL: {temp:0,slip:0}, FR: {temp:0,slip:0}, RL: {temp:0,slip:0}, RR: {temp:0,slip:0} };
+
+function drawTires() {
+  var s = setupCanvas('tireCanvas');
+  if (!s) return;
+  var ctx = s.ctx, W = s.W, H = s.H;
+  ctx.clearRect(0, 0, W, H);
+
+  // Car body outline — scaled to canvas size
+  var pad = Math.min(W, H) * 0.08;
+  var carL = pad, carT = pad + H * 0.08;
+  var carW = W - pad * 2, carH = H - pad * 2 - H * 0.12;
+  ctx.strokeStyle = '#d0d8e0'; ctx.lineWidth = 1;
+  ctx.strokeRect(carL, carT, carW, carH);
+
+  // Front label
+  ctx.fillStyle = '#8090a0'; ctx.font = Math.max(8, H * 0.06) + 'px Share Tech Mono, monospace';
+  ctx.textAlign = 'center'; ctx.fillText('FRONT', W / 2, carT - 3);
+
+  var tireW = carW * 0.18, tireH = carH * 0.28;
+  var tirePadX = carW * 0.05, tirePadY = carH * 0.08;
+  var fontBig = Math.max(10, Math.min(tireW * 0.5, tireH * 0.45)) + 'px Share Tech Mono, monospace';
+  var fontSmall = Math.max(7, Math.min(tireW * 0.35, tireH * 0.3)) + 'px Share Tech Mono, monospace';
+
+  var positions = [
+    { id: 'FL', cx: carL + tirePadX + tireW / 2, cy: carT + tirePadY + tireH / 2 },
+    { id: 'FR', cx: carL + carW - tirePadX - tireW / 2, cy: carT + tirePadY + tireH / 2 },
+    { id: 'RL', cx: carL + tirePadX + tireW / 2, cy: carT + carH - tirePadY - tireH / 2 },
+    { id: 'RR', cx: carL + carW - tirePadX - tireW / 2, cy: carT + carH - tirePadY - tireH / 2 }
+  ];
+
+  positions.forEach(function(p) {
+    var t = _tireData[p.id];
+    var temp = t.temp || 0;
+    var slip = t.slip || 0;
+
+    var slipPct = Math.min(1, Math.abs(slip));
+    var cr = Math.round(slipPct * 221);
+    var cg = Math.round((1 - slipPct) * 170);
+    var cb = Math.round((1 - slipPct) * 68);
+
+    ctx.fillStyle = 'rgb(' + cr + ',' + cg + ',' + cb + ')';
+    ctx.fillRect(p.cx - tireW / 2, p.cy - tireH / 2, tireW, tireH);
+    ctx.strokeStyle = '#8090a0'; ctx.lineWidth = 1;
+    ctx.strokeRect(p.cx - tireW / 2, p.cy - tireH / 2, tireW, tireH);
+
+    ctx.fillStyle = '#1a2a3a'; ctx.font = fontBig;
+    ctx.textAlign = 'center';
+    ctx.fillText(temp + '°', p.cx, p.cy + tireH * 0.12);
+
+    ctx.fillStyle = cr > 150 ? '#dd2244' : '#8090a0';
+    ctx.font = fontSmall;
+    ctx.fillText(slip.toFixed(2), p.cx, p.cy + tireH * 0.12 + tireH * 0.4);
+  });
+}
+
+// ===== RENDER LOOP =====
+setInterval(function() { try { drawMiniChart('liveChartRpm', liveData.rpm, '#00aadd', 9000, 'RPM', ''); } catch(e) {} }, 33);
+setInterval(function() { try { drawMiniChart('liveChartSlip', liveData.slip, '#8844cc', 2, 'SLIP', ''); } catch(e) {} }, 33);
+setInterval(function() { try { drawMiniChart('liveChartTrq', liveData.trq, '#ee8800', 800, 'TRQ', 'Nm'); } catch(e) {} }, 33);
+setInterval(function() { try { drawTrack(); } catch(e) {} }, 33);
+setInterval(function() { try { drawTacho(); } catch(e) {} }, 33);
+setInterval(function() { try { drawTires(); } catch(e) {} }, 33);
+setInterval(function() { try { drawGForce(_gfAx, _gfAz); } catch(e) {} }, 33);
+
+// ===== SHIFT DETECTION & INDICATOR =====
+var _prevGear = null;
+var _prevClutch = 0;
+var _shiftTimer = {};
+var _shiftEvents = []; // {t: timestamp, type: 'up'|'down'|'clutch'}
+
+function flashShift(type) {
+  var el = null;
+  if (type === 'clutch') el = document.getElementById('shiftClutch');
+  else if (type === 'up') el = document.getElementById('shiftUp');
+  else if (type === 'down') el = document.getElementById('shiftDown');
+  if (!el) return;
+  var cls = 'active-' + type;
+  el.classList.add(cls);
+  if (_shiftTimer[type]) clearTimeout(_shiftTimer[type]);
+  _shiftTimer[type] = setTimeout(function() { el.classList.remove(cls); }, 400);
+}
+
+function addShiftLog(text, type) {
+  var log = document.getElementById('shiftLog');
+  if (!log) return;
+  var entry = document.createElement('div');
+  entry.className = 'shift-log-entry ' + type;
+  entry.textContent = text;
+  log.insertBefore(entry, log.firstChild);
+  if (log.children.length > 6) log.removeChild(log.lastChild);
+}
+
+function detectShifts(data) {
+  var gear = data.gear;
+  var clutch = parseFloat(data.clutch) || 0;
+
+  // Clutch press detection
+  if (clutch > 200 && _prevClutch <= 200) {
+    flashShift('clutch');
+    _shiftEvents.push({ t: Date.now(), type: 'clutch' });
+  }
+  _prevClutch = clutch;
+
+  // Gear change detection
+  if (_prevGear !== null && gear !== _prevGear) {
+    var now = new Date();
+    var timeStr = now.getMinutes() + ':' + (now.getSeconds() < 10 ? '0' : '') + now.getSeconds();
+    if (gear > _prevGear) {
+      flashShift('up');
+      addShiftLog(timeStr + '  ' + _prevGear + ' → ' + gear + '  UP', 'up');
+      _shiftEvents.push({ t: Date.now(), type: 'up' });
+    } else if (gear < _prevGear) {
+      flashShift('down');
+      addShiftLog(timeStr + '  ' + _prevGear + ' → ' + gear + '  DOWN', 'down');
+      _shiftEvents.push({ t: Date.now(), type: 'down' });
+    }
+  }
+  _prevGear = gear;
+}
+
+// ===== THEME FUNCTIONS =====
+function updateDashboard(data) {
+  // Speed / Gear / RPM
+  document.getElementById('speedValue').textContent = data.speed || 0;
+  var g = data.gear;
+  document.getElementById('gearValue').textContent = (g === 0 || g === undefined || g === null) ? 'N' : g;
+  var rpm = Math.round(parseFloat(data.rpm) || 0);
+  document.getElementById('rpmValue').textContent = rpm;
+  _tachoRpm = rpm;
+  _tachoMax = parseFloat(data.engine_max_rpm) || 9000;
+
+  // Status chips
+  document.getElementById('boostVal').textContent = isNaN(parseFloat(data.boost)) ? '-' : parseFloat(data.boost).toFixed(1);
+  var fuel = parseFloat(data.fuel);
+  document.getElementById('fuelVal').textContent = isNaN(fuel) ? '0%' : (fuel * 100).toFixed(0) + '%';
+  document.getElementById('powerVal').textContent = isNaN(parseFloat(data.power)) ? '-' : parseFloat(data.power).toFixed(0);
+  document.getElementById('torqueVal').textContent = isNaN(parseFloat(data.torque)) ? '-' : parseFloat(data.torque).toFixed(0);
+
+  // Tires
+  if (data.tires) {
+    ['FL','FR','RL','RR'].forEach(function(pos) {
+      var t = data.tires[pos];
+      if (!t) return;
+      _tireData[pos] = { temp: t.temp || 0, slip: Math.abs(t.combined_slip || 0) };
+    });
+  }
+
+  // Car info
+  var co = document.getElementById('carOrdinal');
+  if (co) co.textContent = data.car_ordinal || '--';
+  document.getElementById('carClass').textContent = data.car_class || '--';
+  document.getElementById('carPerf').textContent = data.car_perf || '--';
+  document.getElementById('carDrive').textContent = data.drivetrain || '--';
+  document.getElementById('carCyl').textContent = data.num_cylinders || '--';
+  document.getElementById('carMaxRpm').textContent = Math.round(parseFloat(data.engine_max_rpm)) || '--';
+
+  // Race info
+  var lapNo = parseInt(data.lap_no) || 0;
+  document.getElementById('raceLap').textContent = lapNo > 0 ? lapNo : '--';
+  document.getElementById('raceTime').textContent = fmtTime(parseFloat(data.cur_lap_time) || 0);
+  var bestMs = parseFloat(data.best_lap_time);
+  document.getElementById('raceBest').textContent = bestMs > 0 ? fmtTime(bestMs) : '--:--.---';
+  var lastMs = parseFloat(data.last_lap_time);
+  document.getElementById('raceLast').textContent = lastMs > 0 ? fmtTime(lastMs) : '--:--.---';
+  var posEl = document.getElementById('racePos');
+  if (posEl) { var pos = parseInt(data.race_pos); posEl.textContent = pos > 0 ? 'P' + pos : '--'; }
+  var distEl = document.getElementById('raceDist');
+  if (distEl) { var dist = parseFloat(data.dist_traveled) || 0; distEl.textContent = dist > 1000 ? (dist/1000).toFixed(1) + ' km' : Math.round(dist) + ' m'; }
+
+  // Push live data
+  detectShifts(data);
+  pushLiveData(data);
+  _gfAx = parseFloat(data.accel_x) || 0;
+  _gfAz = parseFloat(data.accel_z) || 0;
+  pushTrackData(data);
+}
+
+function resetThemeDashboard() {
+  document.getElementById('speedValue').textContent = '0';
+  document.getElementById('gearValue').textContent = 'N';
+  document.getElementById('rpmValue').textContent = '0';
+  _tachoRpm = 0; _tachoMax = 9000;
+  _prevGear = null; _prevClutch = 0;
+  var sl = document.getElementById('shiftLog');
+  if (sl) sl.innerHTML = '';
+  document.getElementById('raceLap').textContent = '--';
+  document.getElementById('raceTime').textContent = '0:00.000';
+  document.getElementById('raceBest').textContent = '--:--.---';
+  document.getElementById('raceLast').textContent = '--:--.---';
+  var rp = document.getElementById('racePos'); if (rp) rp.textContent = '--';
+  var rd = document.getElementById('raceDist'); if (rd) rd.textContent = '0 m';
+  liveData = { rpm: [], slip: [], trq: [] };
+  gfTrail = [];
+  var co = document.getElementById('carOrdinal'); if (co) co.textContent = '--';
+  var spr = document.getElementById('shiftPointsRow'); if (spr) spr.innerHTML = '';
+  trackPts = []; trackDirty = true;  drawMiniChart('liveChartRpm', liveData.rpm, '#00aadd', 9000, 'RPM', '');
+  drawMiniChart('liveChartSlip', liveData.slip, '#8844cc', 2, 'SLIP', '');
+  drawMiniChart('liveChartTrq', liveData.trq, '#ee8800', 800, 'TRQ', 'Nm');
+  drawGForce(0, 0); drawTrack();
+  var aph = document.getElementById('analysisPlaceholder');
+  var ach = document.getElementById('analysisCharts');
+  if (aph) aph.style.display = 'flex';
+  if (ach) ach.classList.remove('active');
+  document.getElementById('shiftPointBody').innerHTML = '';
+}
+
+function _switchToAnalysis() {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+  var btn = document.querySelector('.tab-btn[data-tab="analysis"]');
+  var pane = document.getElementById('tab-analysis');
+  if (btn) btn.classList.add('active');
+  if (pane) pane.classList.add('active');
+}
+
+function updateChartsUI(data) {
+  if (typeof data === 'string') return; // old PNG format, ignore
+  var ph = document.getElementById('analysisPlaceholder');
+  var ch = document.getElementById('analysisCharts');
+  if (ph) ph.style.display = 'none';
+  if (ch) ch.classList.add('active');
+  _switchToAnalysis();
+  // Defer drawing to next frame so the tab is visible and canvas has dimensions
+  requestAnimationFrame(function() {
+    drawAnalysisChart('analysisChartRpm', data, 'rpm', 'RPM', 'Torque (Nm)');
+    drawAnalysisChart('analysisChartSpeed', data, 'speed', 'Speed (km/h)', 'Torque (Nm)');
+  });
+}
+
+var GEAR_COLORS = ['#00aadd','#dd8800','#ee4433','#00aa44','#8844cc','#dd2244','#ee8800','#0088cc','#44bb88','#cc6699'];
+
+function drawAnalysisChart(canvasId, data, mode, xLabel, yLabel) {
+  var s = setupCanvas(canvasId);
+  if (!s) return;
+  var ctx = s.ctx, W = s.W, H = s.H;
+  var leftPad = 50, bottomPad = 20, topPad = 4, rightPad = 10;
+  var plotW = W - leftPad - rightPad, plotH = H - bottomPad - topPad;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f0f4f8'; ctx.fillRect(0, 0, W, H);
+
+  // Find ranges
+  var xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+  for (var g in data) {
+    var pts = mode === 'rpm' ? data[g].rpm_torque : data[g].speed_torque;
+    for (var i = 0; i < pts.length; i++) {
+      if (pts[i][0] < xMin) xMin = pts[i][0];
+      if (pts[i][0] > xMax) xMax = pts[i][0];
+      if (pts[i][1] < yMin) yMin = pts[i][1];
+      if (pts[i][1] > yMax) yMax = pts[i][1];
+    }
+  }
+  if (xMin === Infinity) return;
+  var xRange = xMax - xMin || 1, yRange = yMax - yMin || 1;
+
+  // Grid
+  ctx.strokeStyle = '#d0d8e0'; ctx.lineWidth = 0.5;
+  for (var i = 0; i <= 4; i++) {
+    var gy = topPad + plotH * i / 4;
+    ctx.beginPath(); ctx.moveTo(leftPad, gy); ctx.lineTo(W - rightPad, gy); ctx.stroke();
+    var gx = leftPad + plotW * i / 4;
+    ctx.beginPath(); ctx.moveTo(gx, topPad); ctx.lineTo(gx, topPad + plotH); ctx.stroke();
+  }
+
+  // Y axis labels
+  ctx.fillStyle = '#8090a0'; ctx.font = '9px Share Tech Mono, monospace'; ctx.textAlign = 'right';
+  ctx.fillText(Math.round(yMax), leftPad - 4, topPad + 8);
+  ctx.fillText(Math.round((yMax + yMin) / 2), leftPad - 4, topPad + plotH / 2 + 3);
+  ctx.fillText(Math.round(yMin), leftPad - 4, topPad + plotH);
+  // X axis labels
+  ctx.textAlign = 'center';
+  ctx.fillText(Math.round(xMin), leftPad, topPad + plotH + 14);
+  ctx.fillText(Math.round((xMax + xMin) / 2), leftPad + plotW / 2, topPad + plotH + 14);
+  ctx.fillText(Math.round(xMax), W - rightPad, topPad + plotH + 14);
+  // Axis labels
+  ctx.fillStyle = '#607080'; ctx.font = '8px Share Tech Mono, monospace';
+  ctx.textAlign = 'center'; ctx.fillText(xLabel, leftPad + plotW / 2, H - 2);
+  ctx.save(); ctx.translate(8, topPad + plotH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText(yLabel, 0, 0); ctx.restore();
+
+  // Draw curves per gear
+  var gearIdx = 0;
+  for (var g in data) {
+    var pts = mode === 'rpm' ? data[g].rpm_torque : data[g].speed_torque;
+    if (pts.length < 2) continue;
+    var c = GEAR_COLORS[gearIdx % GEAR_COLORS.length];
+    ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (var i = 0; i < pts.length; i++) {
+      var px = leftPad + ((pts[i][0] - xMin) / xRange) * plotW;
+      var py = topPad + plotH - ((pts[i][1] - yMin) / yRange) * plotH;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    // Gear label at end of curve
+    var lastPt = pts[pts.length - 1];
+    var lx = leftPad + ((lastPt[0] - xMin) / xRange) * plotW;
+    var ly = topPad + plotH - ((lastPt[1] - yMin) / yRange) * plotH;
+    ctx.fillStyle = c; ctx.font = 'bold 9px Share Tech Mono, monospace';
+    ctx.textAlign = 'left'; ctx.fillText('G' + g, lx + 3, ly - 2);
+    gearIdx++;
+  }
+}
+
+function updateShiftPointsUI(data) {
+  // Update live overlay shift points (vertical format)
+  var row = document.getElementById('shiftPointsRow');
+  if (row) {
+    if (!data || Object.keys(data).length === 0) { row.textContent = ''; }
+    else {
+      var lines = [];
+      for (var g in data) { lines.push(g + ' → ' + (data[g].rpm || '--') + ' rpm'); }
+      row.innerHTML = lines.join('<br>');
+    }
+  }
+  // Update analysis table
+  var body = document.getElementById('shiftPointBody');
+  if (body) {
+    body.innerHTML = '';
+    if (data) {
+      for (var gear in data) {
+        var sp = data[gear];
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + gear + '</td><td>' + (sp.rpm || '--') + '</td><td>' + (sp.speed || '--') + '</td>';
+        body.appendChild(tr);
+      }
+    }
+  }
+  if (typeof _switchToAnalysis === 'function') _switchToAnalysis();
+}
+
+</script>
+</body>
+</html>

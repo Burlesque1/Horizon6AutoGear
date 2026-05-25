@@ -1,0 +1,509 @@
+# Standard library
+import os
+import time
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from os import listdir
+from os.path import isfile, join
+
+# Third-party
+import matplotlib.pyplot as plt
+
+# Local
+import horizon6_autogear.config.config as constants
+
+from horizon6_autogear.core.forza_data_packet import ForzaDataPacket
+
+import horizon6_autogear.shifting.gear_helper as gear_helper
+import horizon6_autogear.utils.helper as helper
+import horizon6_autogear.shifting.keyboard as keyboard_helper
+from horizon6_autogear.core.car_info import CarInfo
+from horizon6_autogear.config.config import ConfigVersion
+from horizon6_autogear.utils.logger import Logger
+from horizon6_autogear.core.playback import PlaybackSource
+
+debug_properties = [
+    'gear', 'current_engine_rpm', 'speed', 'tire_slip_ratio_RL', 'tire_slip_ratio_RR', 'tire_slip_ratio_FL', 'tire_slip_ratio_FR', 'tire_slip_angle_RL', 'tire_slip_angle_RR', 'tire_slip_angle_FL', 'tire_slip_angle_FR', 'acceleration_x', 'acceleration_y',
+    'acceleration_z', 'velocity_x', 'velocity_y', 'velocity_z', 'accel', 'surface_rumble_FL', 'surface_rumble_FR', 'surface_rumble_RL', 'surface_rumble_RR', 'norm_driving_line', 'norm_ai_brake_diff', 'brake',
+]
+
+
+class Forza(CarInfo):
+
+    def __init__(self, threadPool: ThreadPoolExecutor, logger: Logger = None, packet_format='fh6', enable_clutch=False):
+        """initialization
+
+        Args:
+            threadPool (ThreadPoolExecutor): threadPool
+            packet_format (str, optional): packet_format. Defaults to 'fh6'.
+            enable_clutch (bool, optional): enable_clutch. Defaults to False.
+        """
+        super().__init__()
+
+        # === socket ===
+        self.ip = constants.IP
+        self.port = constants.PORT
+
+        # === logger ===
+        self.logger = (Logger()(constants.LOGGER_NAME)) if logger is None else logger
+
+        self.packet_format = packet_format
+        self.isRunning = False
+        self.threadPool = threadPool
+        self.enable_clutch = enable_clutch
+        self.farming = False
+        self.shift_point_factor = constants.SHIFT_FACTOR
+
+        # shortcuts
+        self.clutch = constants.CLUTCH
+        self.upshift = constants.UPSHIFT
+        self.downshift = constants.DOWNSHIFT
+        self.boundKeys = lambda: [self.clutch, self.upshift, self.downshift]
+
+        # constant
+        self.config_folder = os.path.join(constants.ROOT_PATH, constants.CONFIG_DIR_NAME)
+
+        # create folders if not existed
+        helper.ensure_folder_exists(self.config_folder)
+
+        # init constants from config if existed
+        helper.load_settings(self)
+
+        # === car data ===
+        self.gear_ratios = {}
+        self.rpm_torque_map = {}
+        self.shift_point = {}
+        self.records = []
+
+        self.last_upshift = time.time()
+        self.last_downshift = time.time()
+
+        # === exp farm setting ===
+        self.reset_car = 0
+        self.isBrake = False
+        self.reset_time = time.time()
+        self.break_timer = time.time()
+
+        # === recording / playback ===
+        self.playback_mode = False
+        self.recorder = None
+
+    def test_gear(self, update_car_gui_func=None, data_source=None):
+        """collect gear information
+
+        Args:
+            update_car_gui_func (optional): callback to update car gui. Defaults to None.
+            data_source (optional): socket or PlaybackSource. Defaults to None (creates UDP socket).
+        """
+        try:
+            self.logger.debug('[Collect] started')
+            if data_source is None:
+                helper.create_socket(self)
+            socket_to_use = data_source if data_source is not None else self.server_socket
+            self.records = []
+            refresh_time = time.time()
+            while self.isRunning:
+                fdp = helper.nextFdp(socket_to_use, self.packet_format)
+                if fdp is None:
+                    continue
+
+                if fdp.speed > constants.SPEED_THRESHOLD:
+                    # Skip invalid gears (0 = neutral/reverse, out of range)
+                    if fdp.gear < constants.DEFAULT_MIN_GEAR or fdp.gear > constants.DEFAULT_MAX_GEAR:
+                        continue
+                    # Skip when RPM is 0 (coasting/engine off) to avoid division by zero
+                    if fdp.current_engine_rpm <= 0:
+                        continue
+                    self.__update_forza_info(fdp, dump=False)
+                    if update_car_gui_func is not None and time.time() - refresh_time > constants.GUI_REFRESH_INTERVAL:
+                        update_car_gui_func(fdp)
+                        refresh_time = time.time()
+                    info = {
+                        'gear': fdp.gear,
+                        'rpm': fdp.current_engine_rpm,
+                        'time': time.time(),
+                        'speed': fdp.speed * constants.MS_TO_KMH,
+                        'slip': min(constants.MAX_SLIP_RATIO, (fdp.tire_slip_ratio_RL + fdp.tire_slip_ratio_RR) / 2),
+                        'clutch': fdp.clutch,
+                        'power': fdp.power / constants.W_TO_KW,
+                        'torque': fdp.torque,
+                        'speed/rpm': fdp.speed * constants.MS_TO_KMH / fdp.current_engine_rpm
+                    }
+                    self.records.append(info)
+                    self.logger.debug(info)
+        except Exception as e:
+            self.logger.exception(e)
+        finally:
+            self.isRunning = False
+            if data_source is None:
+                helper.close_socket(self)
+            if len(self.records) > 0:
+                gears = set(item['gear'] for item in self.records)
+                self.logger.info(f'[Collect] finished: {len(self.records)} samples across gears {sorted(gears)}')
+            else:
+                self.logger.warning('[Collect] finished: no data collected')
+            self.logger.debug('[Collect] ended')
+
+    def analyze(self, performance_profile: bool = True, is_gui: bool = False):
+        """analyze data
+
+        Args:
+            performance_profile (bool, optional): plot figures or not. Defaults to True.
+            is_guid (bool, optional): is gui. Defaults to False
+        """
+        try:
+            self.logger.debug('[Analyze] started')
+            self.shift_point = gear_helper.calculate_optimal_shift_point(self)
+            helper.dump_config(self)
+
+            if performance_profile:
+                plt.close()
+                if is_gui:
+                    plt.ion()
+
+                fig, ax = plt.subplots(2, 2)
+                fig.tight_layout()
+
+                # # gear vs ratio at 0, 0
+                helper.plot_gear_ratio(self, ax, 0, 0)
+
+                # torque vs rpm at 0, 1
+                helper.plot_torque_rpm(self, ax, 0, 1)
+
+                # torque vs speed at 1, 0
+                helper.plot_torque_speed(self, ax, 1, 0)
+
+                # rpm vs speed at 1, 1
+                helper.plot_rpm_speed(self, ax, 1, 1)
+                plt.show()
+        except Exception as e:
+            self.logger.exception(e)
+            self.logger.error(f"[Analyze] Failed: {e}. Try re-collecting data with the car in forward motion")
+        finally:
+            self.logger.debug('[Analyze] ended')
+
+    def __update_forza_info(self, fdp: ForzaDataPacket, update_tree_func=lambda *args: None, dump: bool = True, first_load: bool = False):
+        """update forza info while running
+
+            # try to load config if:
+            # self.ordinal != fdp.car_ordinal or self.car_perf != fdp.car_performance_index or self.car_class != fdp.car_class or self.car_drivetrain != fdp.drivetrain_type
+
+        Args:
+            fdp (ForzaDataPacket): datapackage
+        """
+        if first_load or self.ordinal != fdp.car_ordinal or self.car_perf != fdp.car_performance_index or self.car_class != fdp.car_class or self.car_drivetrain != fdp.drivetrain_type:
+            self.ordinal = fdp.car_ordinal
+            self.car_perf = fdp.car_performance_index
+            self.car_class = fdp.car_class
+            self.car_drivetrain = fdp.drivetrain_type
+            res = True
+            if dump:
+                res = self.__try_auto_load_config(fdp)
+
+            if not res:
+                self.shift_point = {}
+
+            if update_tree_func is not None:
+                self.threadPool.submit(update_tree_func)
+
+            return res
+        else:
+            return True
+
+    def __try_auto_load_config(self, fdp: ForzaDataPacket):
+        """auto load config while driving
+
+        Args:
+            fdp (ForzaDataPacket): fdp
+
+        Returns:
+            [bool]: success or failure
+        """
+        try:
+            self.logger.debug('[Config] auto-load started')
+            configs = [f for f in listdir(self.config_folder) if (isfile(join(self.config_folder, f)) and str(fdp.car_ordinal) in f)]
+            if len(configs) <= 0:
+                self.logger.warning(f'[Config] car {fdp.car_ordinal} config not found in {self.config_folder}. Run {constants.COLLECT_DATA} + {constants.ANALYSIS} first')
+                return False
+            elif len(configs) > 0:
+                self.logger.info(f'[Config] found car {fdp.car_ordinal} config(s): {configs}')
+
+                # latest config version: ordinal-perf-drivetrain.json, v2
+                filename = helper.get_config_name(self)
+                if filename in configs:
+                    if self.__try_loading_config(filename):
+                        # remove legacy config if necessary
+                        if len(configs) > 1:
+                            self.__cleanup_legacy_config(configs)
+
+                        return True
+                    else:
+                        return False
+
+                # if latest config version not existed. like only ordinal.json, v1
+                filename = helper.get_config_name(self, ConfigVersion.v1)
+                if filename in configs:
+                    if self.__try_loading_config(filename):
+                        self.car_perf = fdp.car_performance_index
+                        self.car_class = fdp.car_class
+                        self.car_drivetrain = fdp.drivetrain_type
+
+                        # dump to latest config version
+                        helper.dump_config(self)
+                        self.__cleanup_legacy_config(configs)
+                        return True
+                    else:
+                        return False
+
+                # unknown config
+                self.logger.warning(f'[Config] valid config for car {fdp.car_ordinal} not found in {self.config_folder}: {configs}. Run {constants.COLLECT_DATA} + {constants.ANALYSIS} to create')
+                return False
+        finally:
+            self.logger.debug('[Config] auto-load ended')
+
+    def __cleanup_legacy_config(self, configs, latest_version: ConfigVersion = constants.DEFAULT_CONFIG_VERSION):
+        """cleanup legacy configs
+
+        Args:
+            configs (list): list of configs
+            latest_version (ConfigVersion, optional): config version. Defaults to constants.DEFAULT_CONFIG_VERSION.
+        """
+        for config in configs:
+            version = helper.get_config_version(self, config)
+            if version != latest_version:
+                try:
+                    self.logger.warning(f'[Config] removing legacy config: {config}')
+                    os.remove(self.get_config_path(config))
+                except Exception as e:
+                    self.logger.warning(f'[Config] failed to remove legacy config {config}: {e}')
+
+    def __try_loading_config(self, config):
+        """try to load config
+
+        Args:
+            config (str): config file name
+
+        Returns:
+            bool: success or failure
+        """
+        self.logger.info(f'[Config] loading: {config}')
+        helper.load_config(self, self.get_config_path(config))
+        if len(self.shift_point) <= 0:
+            self.logger.warning(f'[Config] invalid config. Run {constants.COLLECT_DATA} + {constants.ANALYSIS} to create a new one')
+            return False
+
+        self.logger.info(f'[Config] loaded: {config}')
+        return True
+
+    def shifting(self, iteration, fdp):
+        """shifting func
+
+        Args:
+            iteration (int): iteration
+            fdp (ForzaDataPacket): fdp
+
+        Returns:
+            [int]: iteration
+        """
+        gear = fdp.gear
+        if len(self.shift_point) > 0 and fdp.speed > constants.SPEED_THRESHOLD and self.minGear <= gear <= self.maxGear:
+            iteration = iteration + 1
+
+            # prepare shifting params
+            slip = (fdp.tire_slip_ratio_RL + fdp.tire_slip_ratio_RR) / 2
+            f_slip = (fdp.tire_slip_ratio_FL + fdp.tire_slip_ratio_FR) / 2
+            angle_slip = abs((fdp.tire_slip_angle_RL + fdp.tire_slip_angle_RR) / 2)
+            f_angle_slip = abs((fdp.tire_slip_angle_FL + fdp.tire_slip_angle_FR) / 2)
+            slips = [slip, f_slip, angle_slip, f_angle_slip]
+            speed = fdp.speed * constants.MS_TO_KMH
+            rpm = fdp.current_engine_rpm
+            accel = fdp.accel
+            fired = False
+            # Only create debug log if debug level is enabled (performance optimization)
+            if self.logger.isEnabledFor(logging.DEBUG):
+                debug_log = fdp.to_list(debug_properties)
+                self.logger.debug(f'[{iteration}] {debug_log}')
+
+            # up shift logic
+            if gear < self.maxGear and accel and gear in self.shift_point:
+                target_rpm = self.shift_point[gear]['rpmo'] * self.shift_point_factor
+                target_up_speed = int(self.shift_point[gear]['speed'] * self.shift_point_factor)
+
+                if self.car_drivetrain == constants.DRIVETRAIN_RWD:
+                    # RWD logic
+                    # When gear < 3, the upshift target rpm and speed would be a little bit (95%) lower than AWD when (slip >= 1 or angle_slip >= 1)
+                    # at low gear (<= 3)
+                    if gear < constants.RWD_LOW_GEAR_THRESHOLD and (angle_slip >= 1 or slip >= 1):
+                        fired = self.__up_shift(rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp)
+                    else:
+                        fired = self.__up_shift(rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp)
+                else:
+                    # AWD, FWD logic
+                    fired = self.__up_shift(rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp)
+
+            # down shift logic
+            if not fired and gear > self.minGear:
+                available_gears = self.shift_point.keys()
+                if gear - 1 in available_gears:
+                    lower_gear = gear - 1
+                else:
+                    lower_gear = min(available_gears, key=lambda x: abs(x - (gear - 1)))
+
+                target_down_speed = self.shift_point[lower_gear]['speed'] * self.shift_point_factor
+
+                # RWD logic
+                if self.car_drivetrain == constants.DRIVETRAIN_RWD:
+                    # don't down shift to gear 1 when RWD
+                    if gear >= constants.RWD_LOW_GEAR_THRESHOLD:
+                        self.__down_shift(speed, target_down_speed, slips, iteration, gear, fdp)
+                else:
+                    self.__down_shift(speed, target_down_speed, slips, iteration, gear, fdp)
+
+        return iteration
+
+    def __up_shift(self, rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp):
+        """up shift
+
+        Args:
+            rpm (float): rpm
+            target_rpm (float): target rpm to up shifting
+            speed (float): speed
+            target_up_speed (float): target speed to up shifting
+            slips (float): total combined slip/angles slip of front/rear tires
+            iteration (int): package iteration
+            gear (int): current gear
+            fdp (ForzaPackage): Forza Package
+
+        Returns:
+            _type_: _description_
+        """
+        if rpm > target_rpm and slips[0] < 1 and speed > target_up_speed:
+            self.logger.debug(f'[{iteration}] up shift triggered. rpm > target rpm ({rpm} > {target_rpm}), speed > target up speed ({speed} > {target_up_speed}), slips {slips}')
+            if self.playback_mode:
+                self.logger.info(f'[Playback] up shift gear {gear} -> {gear + 1} (no key press)')
+            else:
+                gear_helper.up_shift_handle(gear, self)
+            return True
+        else:
+            return False
+
+    def __down_shift(self, speed, target_down_speed, slips, iteration, gear, fdp):
+        """down shift
+
+        Args:
+            speed (float): speed
+            target_down_speed (float): target speed to down shifting
+            slips (float): total combined slip/angles slip of front/rear tires
+            iteration (int): package iteration
+            gear (int): current gear
+            fdp (ForzaPackage): Forza Package
+        """
+        if speed < target_down_speed * constants.DOWNSHIFT_SPEED_FACTOR and slips[0] < 1:
+            self.logger.debug(f'[{iteration}] down shift triggered. speed < target down speed ({speed} < {target_down_speed}), slips {slips}')
+            if self.playback_mode:
+                self.logger.info(f'[Playback] down shift gear {gear} -> {gear - 1} (no key press)')
+            else:
+                gear_helper.down_shift_handle(gear, self)
+
+    def __exp_farming_setup(self, fdp):
+        """exp farming setup
+
+        Args:
+            fdp (ForzaDataPacket): datapackage
+        """
+        if self.farming and fdp.car_ordinal > 0:
+            # enable reset car if exp or sp farming is True
+            if abs(fdp.norm_driving_line) >= constants.RESET_DRIVING_LINE_THRESHOLD or fdp.speed < constants.RESET_MIN_SPEED:
+                self.reset_car = self.reset_car + 1
+                # reset car position
+                if self.reset_car >= constants.RESET_COUNT_THRESHOLD and time.time() - self.reset_time > constants.RESET_COOLDOWN_SECONDS:
+                    self.reset_car = 0
+                    self.threadPool.submit(keyboard_helper.resetcar, self)
+                    self.reset_time = time.time()
+            else:
+                self.reset_car = 0
+
+            # exp or sp farming to avoid afk detection, 30s interval
+            if time.time() - self.break_timer > constants.FARMING_BRAKE_INTERVAL and fdp.norm_ai_brake_diff > 0:
+                self.threadPool.submit(keyboard_helper.press_brake, self)
+                self.break_timer = time.time()
+
+    def run(self, update_tree_func=lambda *args: None, update_car_gui_func=lambda *args: None):
+        """run the auto shifting
+
+        Args:
+            update_tree_func (, optional): update tree view callback. Defaults to None.
+            update_car_gui_func (, optional): update car gui callback. Defaults to None.
+        """
+        try:
+            self.logger.debug('[Run] started')
+            helper.create_socket(self)
+            iteration = -1
+            self.reset_car = 0
+            self.reset_time = time.time()
+            refresh_time = time.time()
+            first_load = True
+
+            if self.farming:
+                keyboard_helper.pressdown_str(constants.ACCELERATION)
+
+            while self.isRunning:
+                fdp = helper.nextFdp(self.server_socket, self.packet_format, self.recorder)
+
+                # fdp is not car information
+                if fdp is None or fdp.car_ordinal <= 0:
+                    continue
+
+                # UI refresh, every 0.1s
+                if update_car_gui_func is not None and time.time() - refresh_time > constants.GUI_REFRESH_INTERVAL:
+                    self.threadPool.submit(update_car_gui_func, fdp)
+                    refresh_time = time.time()
+
+                # load car config
+                self.__update_forza_info(fdp, update_tree_func, first_load=first_load)
+                first_load = False
+
+                # enable reset car if exp or sp farming is True
+                self.__exp_farming_setup(fdp)
+
+                # shifting
+                iteration = self.shifting(iteration, fdp)
+        except Exception as e:
+            self.logger.exception(e)
+        finally:
+            self.isRunning = False
+            if self.farming:
+                keyboard_helper.release_str(constants.ACCELERATION)
+
+            helper.close_socket(self)
+            self.logger.debug('[Run] finished')
+
+    def run_playback(self, recording_path: str, update_tree_func=lambda *args: None, update_car_gui_func=lambda *args: None):
+        """Replay recorded UDP data. No socket, no farming, no key presses.
+
+        Args:
+            recording_path (str): path to .f6rec.json file
+            update_tree_func: callback to update tree view
+            update_car_gui_func: callback to update car gui
+        """
+        self.playback_mode = True
+        source = None
+        try:
+            self.logger.info(f'[Playback] loading: {recording_path}')
+            source = PlaybackSource(recording_path)
+            if source.packet_format != self.packet_format:
+                self.logger.warning(f'[Playback] format mismatch: recording={source.packet_format}, session={self.packet_format}')
+            self.logger.info(f'[Playback] {source.metadata["packet_count"]} packets, {source.metadata["duration_sec"]:.1f}s')
+
+            self.test_gear(data_source=source, update_car_gui_func=update_car_gui_func)
+
+            cur, total = source.progress
+            self.logger.info(f'[Playback] finished: {cur}/{total} packets processed')
+        except ValueError as e:
+            self.logger.error(f'[Playback] validation failed: {e}')
+        except Exception as e:
+            self.logger.exception(e)
+        finally:
+            self.isRunning = False
+            self.playback_mode = False
+            self.logger.debug('[Playback] ended')

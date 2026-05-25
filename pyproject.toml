@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "horizon6-autogear"
+version = "1.0.0"
+description = "Intelligent driving assistant for Forza Horizon 5/6 and Forza Motorsport"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Horizon6AutoGear Team"}
+]
+keywords = ["forza", "horizon", "gear", "shifting", "automation", "telemetry"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Games/Entertainment",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "matplotlib>=3.5.0",
+    "numpy>=1.21.0",
+    "pynput>=1.7.0",
+    "pywebview>=5.0",
+    "pywin32>=305; sys_platform == 'win32'",
+    "pyobjc-framework-Quartz>=9.0; sys_platform == 'darwin'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "ruff>=0.1.0",
+]
+packaging = [
+    "pyinstaller>=6.0",
+]
+all = [
+    "horizon6-autogear[dev,packaging]",
+]
+
+[project.scripts]
+horizon6-autogear = "horizon6_autogear.gui:main"
+horizon6-autogear-cli = "horizon6_autogear:main"
+
+[project.urls]
+Homepage = "https://github.com/Burlesque1/Horizon6AutoGear"
+Repository = "https://github.com/Burlesque1/Horizon6AutoGear"
+Issues = "https://github.com/Burlesque1/Horizon6AutoGear/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.txt", "*.md"]
+"horizon6_autogear" = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["./tests"]
+python_files = ["test*.py"]
+python_functions = ["test_*"]

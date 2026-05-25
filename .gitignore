@@ -1,0 +1,16 @@
+dump/**
+config/**
+__pycache__/**
+log/**
+.vscode/**
+backup/**
+.idea/**
+tests/__pycache__/**
+package/build/**
+package/dist/**
+*.egg-info/
+*.pyc
+.claude/
+.omc/
+venv/
+.env
