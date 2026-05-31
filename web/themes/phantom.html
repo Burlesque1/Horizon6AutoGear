@@ -555,8 +555,8 @@ function drawTrack() {
     var p = trackPts[j];
     var normDev = Math.max(-1, Math.min(1, p.dev / 127));
     var yawRad = p.yaw; // already in radians
-    var perpX = -Math.sin(yawRad);
-    var perpZ = Math.cos(yawRad);
+    var perpX = -Math.cos(yawRad);
+    var perpZ = Math.sin(yawRad);
     var ix = p.x - normDev * idealOffsetScale * perpX;
     var iz = p.z - normDev * idealOffsetScale * perpZ;
     if (j === 0) ctx.moveTo(toCanvasX(ix), toCanvasY(iz));
