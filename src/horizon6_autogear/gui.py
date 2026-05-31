@@ -142,9 +142,9 @@ class Api:
         # Start keyboard listener for shortcuts
         self.start_listener()
 
-        # Auto-start live telemetry on launch
+        # Auto-start live telemetry on launch (display-only mode)
         self._auto_live = True
-        self.run()
+        self.observe()
 
     # ---- Button handlers ----
 

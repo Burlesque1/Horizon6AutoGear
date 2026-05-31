@@ -329,6 +329,8 @@ if (sClose) sClose.addEventListener('click', closeSettings);
 if (_settingsOverlay) _settingsOverlay.addEventListener('click', closeSettings);
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeSettings();
+  // Suppress browser default for function keys handled by pynput backend
+  if (e.key.startsWith('F') && /^F\d+$/.test(e.key)) e.preventDefault();
 });
 
 // Theme switching — event listener only; population happens in _onReady()
