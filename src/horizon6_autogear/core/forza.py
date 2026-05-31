@@ -428,15 +428,16 @@ class Forza(CarInfo):
                 self.threadPool.submit(keyboard_helper.press_brake, self)
                 self.break_timer = time.time()
 
-    def run(self, update_tree_func=lambda *args: None, update_car_gui_func=lambda *args: None):
+    def run(self, update_tree_func=lambda *args: None, update_car_gui_func=lambda *args: None, display_only=False):
         """run the auto shifting
 
         Args:
             update_tree_func (, optional): update tree view callback. Defaults to None.
             update_car_gui_func (, optional): update car gui callback. Defaults to None.
+            display_only (bool): if True, receive telemetry without shifting or key presses.
         """
         try:
-            self.logger.debug('[Run] started')
+            self.logger.debug('[Run] started' + (' (display only)' if display_only else ''))
             helper.create_socket(self)
             iteration = -1
             self.reset_car = 0
@@ -444,7 +445,7 @@ class Forza(CarInfo):
             refresh_time = time.time()
             first_load = True
 
-            if self.farming:
+            if not display_only and self.farming:
                 keyboard_helper.pressdown_str(constants.ACCELERATION)
 
             while self.isRunning:
@@ -463,16 +464,17 @@ class Forza(CarInfo):
                 self.__update_forza_info(fdp, update_tree_func, first_load=first_load)
                 first_load = False
 
-                # enable reset car if exp or sp farming is True
-                self.__exp_farming_setup(fdp)
+                if not display_only:
+                    # enable reset car if exp or sp farming is True
+                    self.__exp_farming_setup(fdp)
 
-                # shifting
-                iteration = self.shifting(iteration, fdp)
+                    # shifting
+                    iteration = self.shifting(iteration, fdp)
         except Exception as e:
             self.logger.exception(e)
         finally:
             self.isRunning = False
-            if self.farming:
+            if not display_only and self.farming:
                 keyboard_helper.release_str(constants.ACCELERATION)
 
             helper.close_socket(self)

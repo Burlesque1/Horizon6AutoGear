@@ -85,6 +85,7 @@ COLLECT_DATA = Key.f2
 ANALYSIS = Key.f3
 AUTO_SHIFT = Key.f4
 RECORD = Key.f5  # toggle recording
+OBSERVE = Key.f6  # display-only mode (no shifting)
 STOP = Key.f9  # stop program
 CLOSE = Key.f12  # close program (legacy GUIs only)
 
@@ -94,7 +95,7 @@ UPSHIFT = 'e'  # up shift
 DOWNSHIFT = 'q'  # down shift
 ACCELERATION = 'w'  # acceleration
 BRAKE = 's'  # brake
-BOUND_KEYS = [SHOW_LIVE.name, STOP.name, COLLECT_DATA.name, ANALYSIS.name, AUTO_SHIFT.name, RECORD.name]
+BOUND_KEYS = [SHOW_LIVE.name, STOP.name, COLLECT_DATA.name, ANALYSIS.name, AUTO_SHIFT.name, OBSERVE.name, RECORD.name]
 
 # === Delay Settings ===
 DELAY_CLUTCH_TO_SHIFT = 0  # delay between pressing clutch and shift
@@ -223,6 +224,7 @@ RPM_TXT = ['RPM', '转速']
 COLLECT_BUTTON_TXT = ['Collect Data', '收集数据']
 ANALYSIS_BUTTON_TXT = ['Analysis', '分析数据']
 RUN_BUTTON_TXT = ['Auto', '自动换挡']
+OBSERVE_BUTTON_TXT = ['Observe', '纯显示']
 PAUSE_BUTTON_TXT = ['Pause', '暂停']
 EXIT_BUTTON_TXT = ['Exit', '退出']
 CLEAR_LOG_TXT = ['Clear', '清空']

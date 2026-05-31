@@ -202,6 +202,22 @@ class Api:
             self.threadPool.submit(
                 self.engine.run, self.update_tree, self.update_car_info)
 
+    def observe(self):
+        if self.engine.isRunning:
+            self.engine.logger.info('stopping current mode')
+
+            def stopping():
+                self.engine.isRunning = False
+                self._save_recorder()
+                self._reset_dashboard()
+
+            self.threadPool.submit(stopping)
+        else:
+            self.engine.logger.info('starting observe mode (display only)')
+            self.engine.isRunning = True
+            self.threadPool.submit(
+                self.engine.run, self.update_tree, self.update_car_info, True)
+
     def pause(self):
         if not self.engine:
             return
@@ -371,7 +387,7 @@ class Api:
             'DISPLAY_THEME_TXT', 'SUSP_TRAVEL_TXT',
             'LOG_TAB_TXT', 'CHARTS_TAB_TXT', 'SHIFT_POINTS_TAB_TXT',
             'SETTINGS_TITLE', 'CONFIRM_TXT',
-            'COLLECT_BUTTON_TXT', 'ANALYSIS_BUTTON_TXT', 'RUN_BUTTON_TXT',
+            'COLLECT_BUTTON_TXT', 'ANALYSIS_BUTTON_TXT', 'RUN_BUTTON_TXT', 'OBSERVE_BUTTON_TXT',
             'PAUSE_BUTTON_TXT', 'EXIT_BUTTON_TXT', 'RECORD_TXT', 'PLAYBACK_TXT',
             'PROGRAM_INFO_TXT', 'LIVE_TORQUE_TAB_TXT', 'CLEAR_LOG_TXT',
         ]
@@ -563,6 +579,8 @@ class Api:
                 self.analyze()
             elif key == constants.AUTO_SHIFT:
                 self.run()
+            elif key == constants.OBSERVE:
+                self.observe()
             elif key == constants.STOP:
                 self.pause()
             elif key == constants.RECORD:

@@ -198,6 +198,7 @@ function wireBtn(id, fn) {
 
 // Standard action buttons — themes just need matching IDs
 wireBtn('btnRun', function(api) { api.run(); });
+wireBtn('btnObserve', function(api) { api.observe(); });
 wireBtn('btnCollect', function(api) { api.collect(); });
 wireBtn('btnAnalyze', function(api) { api.analyze(); });
 wireBtn('btnPause', function(api) { api.pause(); });
@@ -389,6 +390,7 @@ function applyI18n(i18n, lang) {
   // Update button text (preserving icon prefixes)
   var btnMap = {
     'btnRun': ['RUN_BUTTON_TXT', '▶ '],
+    'btnObserve': ['OBSERVE_BUTTON_TXT', '◉ '],
     'btnCollect': ['COLLECT_BUTTON_TXT', '● '],
     'btnAnalyze': ['ANALYSIS_BUTTON_TXT', '∫ '],
     'btnPause': ['PAUSE_BUTTON_TXT', '◼ '],

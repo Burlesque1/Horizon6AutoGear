@@ -146,6 +146,7 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
   <button id="btnCollect" data-i18n="COLLECT_BUTTON_TXT">COLLECT <kbd>F2</kbd></button>
   <button id="btnAnalyze" data-i18n="ANALYSIS_BUTTON_TXT">ANALYZE <kbd>F3</kbd></button>
   <button id="btnRun" data-i18n="RUN_BUTTON_TXT">AUTO <kbd>F4</kbd></button>
+  <button id="btnObserve" data-i18n="OBSERVE_BUTTON_TXT">OBSERVE <kbd>F6</kbd></button>
   <button id="btnRecord" data-i18n="RECORD_TXT">REC <kbd>F5</kbd></button>
   <button id="btnPause" data-i18n="PAUSE_BUTTON_TXT">PAUSE <kbd>F9</kbd></button>
   <button id="btnPlayback" data-i18n="PLAYBACK_TXT">PLAYBACK</button>
@@ -464,14 +465,13 @@ function devColor(dev) {
 var trackDirty = false;
 
 function pushTrackData(d) {
-  // Forza Horizon: X=lateral, Y=forward/backward (ground), Z=altitude
-  // Use position_y (not position_z) for the vertical map axis
+  // Forza Horizon: X=lateral, Y=altitude, Z=forward/backward
   var px = parseFloat(d.position_x);
-  var py = parseFloat(d.position_y);
-  if (isNaN(px) || isNaN(py)) return;
+  var pz = parseFloat(d.position_z);
+  if (isNaN(px) || isNaN(pz)) return;
 
   trackPts.push({
-    x: px, z: py,
+    x: px, z: pz,
     dev: parseInt(d.norm_driving_line) || 0,
     brake: parseInt(d.norm_ai_brake_diff) || 0,
     yaw: parseFloat(d.yaw) || 0,
@@ -508,7 +508,7 @@ function drawTrack() {
   var mL = 300, mR = 20, mT = 20, mB = 60;
   var areaW = W - mL - mR, areaH = H - mT - mB;
 
-  // Auto-fit bounds: x = position_x (lateral), z = position_y (forward)
+  // Auto-fit bounds: x = position_x (lateral), z = position_z (forward)
   var minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   for (var i = 0; i < trackPts.length; i++) {
     if (trackPts[i].x < minX) minX = trackPts[i].x;
