@@ -26,6 +26,7 @@ from horizon6_autogear.shifting.shift_controller import ShiftController
 from horizon6_autogear.shifting.keyboard import KeyboardOutput
 from horizon6_autogear.control.traction_controller import TractionController
 from horizon6_autogear.control.arbiter import Arbiter
+from horizon6_autogear.control.corner_controller import CornerController
 
 debug_properties = [
     'gear', 'current_engine_rpm', 'speed', 'tire_slip_ratio_RL', 'tire_slip_ratio_RR', 'tire_slip_ratio_FL', 'tire_slip_ratio_FR', 'tire_slip_angle_RL', 'tire_slip_angle_RR', 'tire_slip_angle_FL', 'tire_slip_angle_FR', 'acceleration_x', 'acceleration_y',
@@ -102,6 +103,7 @@ class Forza(CarInfo):
             throttle_reduction=constants.TCS_THROTTLE_REDUCTION,
         )
         self.arbiter = Arbiter()
+        self.corner_controller = CornerController()
 
     def test_gear(self, update_car_gui_func=None, data_source=None):
         """collect gear information
@@ -350,11 +352,13 @@ class Forza(CarInfo):
 
         driver_throttle = fdp.accel / 255.0
 
+        corner_throttle, corner_brake = self.corner_controller.compute(fdp)
+
         commanded = self.arbiter.resolve(
             driver_throttle=driver_throttle,
             tcs_throttle=tcs_throttle,
-            corner_throttle=1.0,
-            corner_brake=0.0,
+            corner_throttle=corner_throttle,
+            corner_brake=corner_brake,
             shift_pending=self.shared_state.shift_pending.is_set(),
         )
 
@@ -372,6 +376,14 @@ class Forza(CarInfo):
                 )
 
         return iteration
+
+    def set_output_device(self, device):
+        """Swap output device at runtime (atomic reference swap)."""
+        old = self.output_device
+        if hasattr(old, 'release_all'):
+            old.release_all()
+        self.output_device = device
+        self.logger.info(f'[Output] switched to {type(device).__name__}')
 
     def shifting(self, iteration, fdp):
         """shifting func
