@@ -21,6 +21,9 @@ from horizon6_autogear.core.car_info import CarInfo
 from horizon6_autogear.config.config import ConfigVersion
 from horizon6_autogear.utils.logger import Logger
 from horizon6_autogear.core.playback import PlaybackSource
+from horizon6_autogear.shifting.output_device import SharedState
+from horizon6_autogear.shifting.shift_controller import ShiftController
+from horizon6_autogear.shifting.keyboard import KeyboardOutput
 
 debug_properties = [
     'gear', 'current_engine_rpm', 'speed', 'tire_slip_ratio_RL', 'tire_slip_ratio_RR', 'tire_slip_ratio_FL', 'tire_slip_ratio_FR', 'tire_slip_angle_RL', 'tire_slip_angle_RR', 'tire_slip_angle_FL', 'tire_slip_angle_FR', 'acceleration_x', 'acceleration_y',
@@ -87,6 +90,9 @@ class Forza(CarInfo):
         # === recording / playback ===
         self.playback_mode = False
         self.recorder = None
+        self.shared_state = SharedState()
+        self.output_device = KeyboardOutput()
+        self.shift_controller = None
 
     def test_gear(self, update_car_gui_func=None, data_source=None):
         """collect gear information
@@ -295,6 +301,52 @@ class Forza(CarInfo):
         self.logger.info(f'[Config] loaded: {config}')
         return True
 
+    def _init_shift_controller(self):
+        """Initialize shift controller with current car config."""
+        self.shift_controller = ShiftController(
+            min_gear=self.minGear,
+            max_gear=self.maxGear,
+            clutch_key=self.clutch,
+            upshift_key=self.upshift,
+            downshift_key=self.downshift,
+            drivetrain=self.car_drivetrain,
+            clutch_enabled=self.enable_clutch,
+            shift_factor=self.shift_point_factor,
+            farming=self.farming,
+            logger=self.logger,
+        )
+        self.shift_controller.shift_point = self.shift_point
+
+    def _dispatch_controllers(self, iteration, fdp):
+        """Fast tier: shift decision + dispatch. Called when shift_pending is clear."""
+        iteration = iteration + 1
+
+        if self.logger.isEnabledFor(logging.DEBUG):
+            debug_log = fdp.to_list(debug_properties)
+            self.logger.debug(f'[{iteration}] {debug_log}')
+
+        if not self.shift_point or fdp.speed <= constants.SPEED_THRESHOLD:
+            return iteration
+
+        gear = fdp.gear
+        if gear < self.minGear or gear > self.maxGear:
+            return iteration
+
+        if self.shift_controller is None or self.shift_controller.shift_point != self.shift_point:
+            self._init_shift_controller()
+
+        decision = self.shift_controller.should_shift(fdp)
+        if decision is not None:
+            direction, gear_num = decision
+            if not self.shared_state.shift_pending.is_set():
+                self.shared_state.shift_pending.set()
+                self.threadPool.submit(
+                    self.shift_controller.execute_shift,
+                    direction, gear_num, self.shared_state
+                )
+
+        return iteration
+
     def shifting(self, iteration, fdp):
         """shifting func
 
@@ -451,25 +503,22 @@ class Forza(CarInfo):
             while self.isRunning:
                 fdp = helper.nextFdp(self.server_socket, self.packet_format, self.recorder)
 
-                # fdp is not car information
                 if fdp is None or fdp.car_ordinal <= 0:
                     continue
 
-                # UI refresh, every 0.1s
                 if update_car_gui_func is not None and time.time() - refresh_time > constants.GUI_REFRESH_INTERVAL:
                     self.threadPool.submit(update_car_gui_func, fdp)
                     refresh_time = time.time()
 
-                # load car config
                 self.__update_forza_info(fdp, update_tree_func, first_load=first_load)
                 first_load = False
 
                 if not display_only:
-                    # enable reset car if exp or sp farming is True
                     self.__exp_farming_setup(fdp)
 
-                    # shifting
-                    iteration = self.shifting(iteration, fdp)
+                    if not self.shared_state.shift_pending.is_set():
+                        iteration = self._dispatch_controllers(iteration, fdp)
+
         except Exception as e:
             self.logger.exception(e)
         finally:
