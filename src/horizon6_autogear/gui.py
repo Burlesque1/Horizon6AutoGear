@@ -327,6 +327,29 @@ class Api:
             constants.OFFROAD_RALLY_SHIFT_FACTOR if enabled
             else constants.SHIFT_FACTOR)
 
+    def toggle_tcs(self):
+        self.engine.tcs_enabled = not self.engine.tcs_enabled
+        return self.engine.tcs_enabled
+
+    def get_tcs_state(self):
+        return self.engine.tcs_enabled
+
+    def set_output_mode(self, mode):
+        from horizon6_autogear.shifting.keyboard import KeyboardOutput
+        from horizon6_autogear.shifting.simulated_output import SimulatedOutput
+        from horizon6_autogear.shifting.virtual_gamepad import GamepadOutput
+
+        if mode == 'keyboard':
+            self.engine.set_output_device(KeyboardOutput())
+        elif mode == 'gamepad':
+            try:
+                self.engine.set_output_device(GamepadOutput())
+            except RuntimeError as e:
+                return {'error': str(e)}
+        elif mode == 'simulated':
+            self.engine.set_output_device(SimulatedOutput())
+        return {'mode': mode}
+
     # ---- Query methods (called from JS) ----
 
     def get_themes(self):

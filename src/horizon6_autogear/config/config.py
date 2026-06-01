@@ -238,6 +238,7 @@ STOP_RECORD_TXT = ['Stop Rec', '停止录制']
 STOP_PLAYBACK_TXT = ['Stop Play', '停止回放']
 LIVE_TORQUE_TAB_TXT = ['Live Torque', '实时扭矩']
 COACH_MODE_TXT = ['Coach', '教练']
+TCS_LABEL = ['TCS', '牵引力控制']
 
 BOOST_TXT = ['Boost', '增压']
 FUEL_TXT = ['Fuel', '燃油']
