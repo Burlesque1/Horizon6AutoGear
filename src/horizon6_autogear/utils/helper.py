@@ -206,7 +206,13 @@ def dump_settings(forza: CarInfo):
         'clutch':       forza.clutch,
         'upshift':      forza.upshift,
         'downshift':    forza.downshift,
+        'tcs_enabled':  getattr(forza, 'tcs_enabled', True),
     }
+    tc = getattr(forza, 'traction_controller', None)
+    if tc is not None:
+        json_data['tcs_slip_threshold'] = tc.slip_threshold
+        json_data['tcs_throttle_reduction'] = tc.throttle_reduction
+        json_data['tcs_recovery_margin'] = tc.slip_threshold - tc.recovery_threshold
 
     settings_path = forza.get_config_path(constants.SETTING_FILENAME)
     forza.logger.info(f'[Settings] saving to {settings_path}')
@@ -330,6 +336,16 @@ def load_settings(forza: CarInfo):
                     forza.downshift = downshift_shortcut
                 else:
                     forza.logger.warning(f'[Settings] invalid downshift shortcut: {downshift_shortcut}')
+
+            # TCS params (stored as instance attrs, applied after TractionController creation)
+            if 'tcs_enabled' in settings:
+                forza._saved_tcs_enabled = settings['tcs_enabled']
+            if 'tcs_slip_threshold' in settings:
+                forza._saved_tcs_slip_threshold = float(settings['tcs_slip_threshold'])
+            if 'tcs_throttle_reduction' in settings:
+                forza._saved_tcs_throttle_reduction = float(settings['tcs_throttle_reduction'])
+            if 'tcs_recovery_margin' in settings:
+                forza._saved_tcs_recovery_margin = float(settings['tcs_recovery_margin'])
     except Exception as e:
         forza.logger.warning(f'[Settings] failed to load {settings_path}: {e}')
     finally:

@@ -329,6 +329,7 @@ class Api:
 
     def toggle_tcs(self):
         self.engine.tcs_enabled = not self.engine.tcs_enabled
+        helper.dump_settings(self.engine)
         return self.engine.tcs_enabled
 
     def get_tcs_state(self):
@@ -351,6 +352,7 @@ class Api:
             tc.throttle_reduction = float(throttle_reduction)
         if recovery_margin is not None:
             tc.recovery_threshold = tc.slip_threshold - float(recovery_margin)
+        helper.dump_settings(self.engine)
 
     def set_output_mode(self, mode):
         from horizon6_autogear.shifting.keyboard import KeyboardOutput

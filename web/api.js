@@ -257,6 +257,17 @@ function wireSettings() {
   toggleSwitch(document.getElementById('toggleClutch'), 'clutch');
   toggleSwitch(document.getElementById('toggleFarm'), 'farm');
   toggleSwitch(document.getElementById('toggleOffroad'), 'offroad');
+  toggleSwitch(document.getElementById('toggleTcs'), 'tcs');
+
+  // TCS range inputs
+  ['tcsSlipThreshold', 'tcsThrottleReduction', 'tcsRecoveryMargin'].forEach(function(id) {
+    var el = document.getElementById(id);
+    var valEl = document.getElementById(id + 'Val');
+    if (el) el.addEventListener('input', function() {
+      if (valEl) valEl.textContent = this.value;
+      _pendingSettings[id] = parseFloat(this.value);
+    });
+  });
 
   // Shortcut dropdowns
   var shortcutKeys = ['clutch', 'upshift', 'downshift'];
@@ -284,6 +295,14 @@ function wireSettings() {
     if ('farm' in _pendingSettings) api.toggle_farm(_pendingSettings.farm);
     if ('theme' in _pendingSettings) api.switch_theme(_pendingSettings.theme);
     if ('offroad' in _pendingSettings) api.toggle_offroad(_pendingSettings.offroad);
+    if ('tcs' in _pendingSettings) api.toggle_tcs();
+    if ('tcsSlipThreshold' in _pendingSettings || 'tcsThrottleReduction' in _pendingSettings || 'tcsRecoveryMargin' in _pendingSettings) {
+      api.set_tcs_params(
+        _pendingSettings.tcsSlipThreshold || null,
+        _pendingSettings.tcsThrottleReduction || null,
+        _pendingSettings.tcsRecoveryMargin || null
+      );
+    }
     if ('shortcut_clutch' in _pendingSettings) api.set_shortcut('clutch', _pendingSettings.shortcut_clutch);
     if ('shortcut_upshift' in _pendingSettings) api.set_shortcut('upshift', _pendingSettings.shortcut_upshift);
     if ('shortcut_downshift' in _pendingSettings) api.set_shortcut('downshift', _pendingSettings.shortcut_downshift);

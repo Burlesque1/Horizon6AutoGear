@@ -96,12 +96,18 @@ class Forza(CarInfo):
             farming=self.farming,
         )
         self.shift_controller = None
-        self.tcs_enabled = constants.TCS_ENABLED
         self.traction_controller = TractionController(
             slip_threshold=constants.TCS_SLIP_THRESHOLD,
             min_speed=constants.TCS_MIN_SPEED,
             throttle_reduction=constants.TCS_THROTTLE_REDUCTION,
         )
+        # Apply saved TCS params from load_settings
+        self.tcs_enabled = getattr(self, '_saved_tcs_enabled', constants.TCS_ENABLED)
+        if hasattr(self, '_saved_tcs_slip_threshold'):
+            self.traction_controller.slip_threshold = self._saved_tcs_slip_threshold
+            self.traction_controller.recovery_threshold = self._saved_tcs_slip_threshold - getattr(self, '_saved_tcs_recovery_margin', 0.1)
+        if hasattr(self, '_saved_tcs_throttle_reduction'):
+            self.traction_controller.throttle_reduction = self._saved_tcs_throttle_reduction
         self.arbiter = Arbiter()
         self.corner_controller = CornerController()
 

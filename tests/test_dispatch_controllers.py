@@ -8,7 +8,6 @@ sys.path.append(r'./src')
 
 from horizon6_autogear.core.forza import Forza
 from horizon6_autogear.shifting.output_device import SharedState
-from horizon6_autogear.shifting.shift_controller import ShiftController
 from horizon6_autogear.shifting.simulated_output import SimulatedOutput
 from horizon6_autogear.control.traction_controller import TractionController
 from horizon6_autogear.control.arbiter import Arbiter

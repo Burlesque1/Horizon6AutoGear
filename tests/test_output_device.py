@@ -1,12 +1,10 @@
 import sys
-import os
-import threading
-import time
+from unittest.mock import patch
 
 sys.path.append(r'.')
 sys.path.append(r'./src')
 
-from horizon6_autogear.shifting.output_device import OutputDevice, CommandedState, SharedState
+from horizon6_autogear.shifting.output_device import CommandedState, SharedState
 from horizon6_autogear.shifting.simulated_output import SimulatedOutput
 
 
@@ -58,9 +56,6 @@ def test_simulated_output_clear():
     assert len(output.log) == 1
     output.clear()
     assert len(output.log) == 0
-
-
-from unittest.mock import patch, MagicMock
 
 
 def test_keyboard_output_press_above_threshold():
