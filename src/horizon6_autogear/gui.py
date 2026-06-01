@@ -334,13 +334,34 @@ class Api:
     def get_tcs_state(self):
         return self.engine.tcs_enabled
 
+    def get_tcs_params(self):
+        tc = self.engine.traction_controller
+        return {
+            'enabled': self.engine.tcs_enabled,
+            'slip_threshold': tc.slip_threshold,
+            'throttle_reduction': tc.throttle_reduction,
+            'recovery_margin': tc.slip_threshold - tc.recovery_threshold,
+        }
+
+    def set_tcs_params(self, slip_threshold=None, throttle_reduction=None, recovery_margin=None):
+        tc = self.engine.traction_controller
+        if slip_threshold is not None:
+            tc.slip_threshold = float(slip_threshold)
+        if throttle_reduction is not None:
+            tc.throttle_reduction = float(throttle_reduction)
+        if recovery_margin is not None:
+            tc.recovery_threshold = tc.slip_threshold - float(recovery_margin)
+
     def set_output_mode(self, mode):
         from horizon6_autogear.shifting.keyboard import KeyboardOutput
         from horizon6_autogear.shifting.simulated_output import SimulatedOutput
         from horizon6_autogear.shifting.virtual_gamepad import GamepadOutput
 
         if mode == 'keyboard':
-            self.engine.set_output_device(KeyboardOutput())
+            self.engine.set_output_device(KeyboardOutput(
+                clutch_enabled=self.engine.enable_clutch,
+                farming=self.engine.farming,
+            ))
         elif mode == 'gamepad':
             try:
                 self.engine.set_output_device(GamepadOutput())
@@ -393,7 +414,8 @@ class Api:
                 'clutch': self.engine.clutch,
                 'upshift': self.engine.upshift,
                 'downshift': self.engine.downshift,
-            }
+            },
+            'tcs': self.get_tcs_params(),
         }
 
     def get_i18n(self):

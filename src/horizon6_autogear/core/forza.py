@@ -423,7 +423,7 @@ class Forza(CarInfo):
             first_load = True
 
             if not display_only and self.farming:
-                keyboard_helper.pressdown_str(constants.ACCELERATION)
+                self.output_device.set_analog('throttle', 1.0)
 
             while self.isRunning:
                 fdp = helper.nextFdp(self.server_socket, self.packet_format, self.recorder)
@@ -451,7 +451,8 @@ class Forza(CarInfo):
         finally:
             self.isRunning = False
             if not display_only and self.farming:
-                keyboard_helper.release_str(constants.ACCELERATION)
+                self.output_device.set_analog('throttle', 0.0)
+                self.output_device.release_all()
 
             helper.close_socket(self)
             self.logger.debug('[Run] finished')
