@@ -248,3 +248,46 @@ def press_brake(forza: CarInfo):
     pressdown_str(constants.BRAKE)
     time.sleep(constants.BRAKE_DURATION)
     release_str(constants.BRAKE)
+
+
+class KeyboardOutput:
+    """OutputDevice implementation using keyboard simulation.
+
+    Translates float [0.0, 1.0] values to binary press/release based on
+    threshold crossing. TCS with keyboard produces on/off cuts, not proportional.
+    """
+    THROTTLE_THRESHOLD = 0.1
+
+    def __init__(self):
+        self._throttle_pressed = False
+        self._brake_pressed = False
+
+    def set_analog(self, channel: str, value: float) -> None:
+        if channel == 'throttle':
+            if value > self.THROTTLE_THRESHOLD and not self._throttle_pressed:
+                pressdown_str(constants.ACCELERATION)
+                self._throttle_pressed = True
+            elif value <= self.THROTTLE_THRESHOLD and self._throttle_pressed:
+                release_str(constants.ACCELERATION)
+                self._throttle_pressed = False
+        elif channel == 'brake':
+            if value > self.THROTTLE_THRESHOLD and not self._brake_pressed:
+                pressdown_str(constants.BRAKE)
+                self._brake_pressed = True
+            elif value <= self.THROTTLE_THRESHOLD and self._brake_pressed:
+                release_str(constants.BRAKE)
+                self._brake_pressed = False
+
+    def execute_shift(self, direction: str) -> None:
+        if direction == 'up':
+            press_str(constants.UPSHIFT)
+        elif direction == 'down':
+            press_str(constants.DOWNSHIFT)
+
+    def release_all(self) -> None:
+        if self._throttle_pressed:
+            release_str(constants.ACCELERATION)
+            self._throttle_pressed = False
+        if self._brake_pressed:
+            release_str(constants.BRAKE)
+            self._brake_pressed = False

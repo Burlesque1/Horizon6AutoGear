@@ -58,3 +58,48 @@ def test_simulated_output_clear():
     assert len(output.log) == 1
     output.clear()
     assert len(output.log) == 0
+
+
+from unittest.mock import patch, MagicMock
+
+
+def test_keyboard_output_press_above_threshold():
+    with patch('horizon6_autogear.shifting.keyboard.pressdown_str') as mock_down, \
+         patch('horizon6_autogear.shifting.keyboard.release_str') as mock_up:
+        from horizon6_autogear.shifting.keyboard import KeyboardOutput
+        kb = KeyboardOutput()
+        kb.set_analog('throttle', 0.8)
+        mock_down.assert_called_once_with('w')
+        mock_up.assert_not_called()
+
+
+def test_keyboard_output_release_below_threshold():
+    with patch('horizon6_autogear.shifting.keyboard.pressdown_str') as mock_down, \
+         patch('horizon6_autogear.shifting.keyboard.release_str') as mock_up:
+        from horizon6_autogear.shifting.keyboard import KeyboardOutput
+        kb = KeyboardOutput()
+        kb._throttle_pressed = True
+        kb.set_analog('throttle', 0.05)
+        mock_up.assert_called_once_with('w')
+        mock_down.assert_not_called()
+
+
+def test_keyboard_output_no_op_when_state_unchanged():
+    with patch('horizon6_autogear.shifting.keyboard.pressdown_str') as mock_down, \
+         patch('horizon6_autogear.shifting.keyboard.release_str') as mock_up:
+        from horizon6_autogear.shifting.keyboard import KeyboardOutput
+        kb = KeyboardOutput()
+        kb._throttle_pressed = True
+        kb.set_analog('throttle', 0.9)
+        mock_down.assert_not_called()
+        mock_up.assert_not_called()
+
+
+def test_keyboard_output_brake():
+    with patch('horizon6_autogear.shifting.keyboard.pressdown_str') as mock_down, \
+         patch('horizon6_autogear.shifting.keyboard.release_str') as mock_up:
+        from horizon6_autogear.shifting.keyboard import KeyboardOutput
+        kb = KeyboardOutput()
+        kb.set_analog('brake', 0.5)
+        mock_down.assert_called_once_with('s')
+        mock_up.assert_not_called()
