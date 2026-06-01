@@ -2,32 +2,26 @@ import time
 import logging
 
 import horizon6_autogear.config.config as constants
-import horizon6_autogear.shifting.keyboard as keyboard_helper
-from horizon6_autogear.shifting.output_device import SharedState
+from horizon6_autogear.shifting.output_device import OutputDevice, SharedState
 
 
 class ShiftController:
-    """Determines when to shift and executes shifts asynchronously.
+    """Determines when to shift and delegates execution to OutputDevice.
 
-    Extracts shift decision logic from forza.py shifting() into a standalone
-    controller. Shift execution is submitted to threadPool with shift_pending
-    guard to prevent double-shifts.
+    Shift execution is submitted to threadPool with shift_pending guard
+    to prevent double-shifts. Actual key/button presses go through the
+    OutputDevice protocol.
     """
 
-    def __init__(self, min_gear: int, max_gear: int,
-                 clutch_key: str, upshift_key: str, downshift_key: str,
-                 drivetrain: int = 2, clutch_enabled: bool = False,
-                 shift_factor: float = 1.0, farming: bool = False,
+    def __init__(self, output_device: OutputDevice,
+                 min_gear: int, max_gear: int,
+                 drivetrain: int = 2, shift_factor: float = 1.0,
                  logger: logging.Logger = None):
+        self.output_device = output_device
         self.min_gear = min_gear
         self.max_gear = max_gear
-        self.clutch_key = clutch_key
-        self.upshift_key = upshift_key
-        self.downshift_key = downshift_key
         self.drivetrain = drivetrain
-        self.clutch_enabled = clutch_enabled
         self.shift_factor = shift_factor
-        self.farming = farming
         self.shift_point = {}
         self.logger = logger or logging.getLogger(__name__)
         self.last_upshift = time.time()
@@ -89,28 +83,12 @@ class ShiftController:
         cur = time.time()
         if gear < self.max_gear and cur - self.last_upshift >= constants.UP_SHIFT_COOL_DOWN:
             self.logger.info(f'[ShiftController] up shift: {gear} -> {gear + 1}')
-            if self.clutch_enabled:
-                keyboard_helper.pressdown_str(self.clutch_key)
-            time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
-            keyboard_helper.press_str(self.upshift_key)
-            time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
-            if self.clutch_enabled:
-                keyboard_helper.release_str(self.clutch_key)
+            self.output_device.execute_shift('up')
             self.last_upshift = cur
 
     def _do_down_shift(self, gear: int):
         cur = time.time()
         if gear > self.min_gear and cur - self.last_downshift >= constants.DOWN_SHIFT_COOL_DOWN:
             self.logger.info(f'[ShiftController] down shift: {gear} -> {gear - 1}')
-            if self.clutch_enabled:
-                keyboard_helper.pressdown_str(self.clutch_key)
-                if not self.farming:
-                    keyboard_helper.pressdown_str(constants.ACCELERATION)
-                    time.sleep(constants.BLIP_THROTTLE_DURATION)
-                    keyboard_helper.release_str(constants.ACCELERATION)
-            time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
-            keyboard_helper.press_str(self.downshift_key)
-            time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
-            if self.clutch_enabled:
-                keyboard_helper.release_str(self.clutch_key)
+            self.output_device.execute_shift('down')
             self.last_downshift = cur

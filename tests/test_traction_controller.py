@@ -59,3 +59,35 @@ def _make_fdp(speed, combined_slip_rl=0.0, combined_slip_rr=0.0,
     fdp.tire_combined_slip_FR = combined_slip_fr
     fdp.drivetrain_type = drivetrain
     return fdp
+
+
+def test_hysteresis_stays_engaged_in_deadband():
+    tc = TractionController(slip_threshold=0.5, recovery_margin=0.1)
+    fdp_high = _make_fdp(speed=30.0, combined_slip_rl=0.7, combined_slip_rr=0.6, drivetrain=1)
+    assert tc.compute(fdp_high) < 1.0  # engage
+    fdp_mid = _make_fdp(speed=30.0, combined_slip_rl=0.45, combined_slip_rr=0.42, drivetrain=1)
+    assert tc.compute(fdp_mid) < 1.0  # still engaged (above recovery 0.4)
+    fdp_low = _make_fdp(speed=30.0, combined_slip_rl=0.2, combined_slip_rr=0.2, drivetrain=1)
+    assert tc.compute(fdp_low) == 1.0  # disengaged
+
+
+def test_hysteresis_no_false_engage_in_deadband():
+    tc = TractionController(slip_threshold=0.5, recovery_margin=0.1)
+    fdp_mid = _make_fdp(speed=30.0, combined_slip_rl=0.45, combined_slip_rr=0.42, drivetrain=1)
+    assert tc.compute(fdp_mid) == 1.0  # never engaged, so deadband = no intervention
+
+
+def test_exact_threshold_engages():
+    tc = TractionController(slip_threshold=0.5, recovery_margin=0.1)
+    fdp = _make_fdp(speed=30.0, combined_slip_rl=0.5, combined_slip_rr=0.5, drivetrain=1)
+    assert tc.compute(fdp) == 1.0  # > not >=, so exact threshold does not engage
+
+
+def test_below_speed_resets_intervening_state():
+    tc = TractionController(slip_threshold=0.5, recovery_margin=0.1)
+    fdp_high = _make_fdp(speed=30.0, combined_slip_rl=0.7, combined_slip_rr=0.6, drivetrain=1)
+    tc.compute(fdp_high)  # engage
+    assert tc._intervening
+    fdp_slow = _make_fdp(speed=2.0, combined_slip_rl=0.7, combined_slip_rr=0.6, drivetrain=1)
+    assert tc.compute(fdp_slow) == 1.0  # below min_speed
+    assert not tc._intervening  # state reset

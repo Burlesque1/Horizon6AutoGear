@@ -81,9 +81,6 @@ class Forza(CarInfo):
         self.shift_point = {}
         self.records = []
 
-        self.last_upshift = time.time()
-        self.last_downshift = time.time()
-
         # === exp farm setting ===
         self.reset_car = 0
         self.isBrake = False
@@ -94,7 +91,10 @@ class Forza(CarInfo):
         self.playback_mode = False
         self.recorder = None
         self.shared_state = SharedState()
-        self.output_device = KeyboardOutput()
+        self.output_device = KeyboardOutput(
+            clutch_enabled=self.enable_clutch,
+            farming=self.farming,
+        )
         self.shift_controller = None
         self.tcs_enabled = constants.TCS_ENABLED
         self.traction_controller = TractionController(
@@ -315,15 +315,11 @@ class Forza(CarInfo):
     def _init_shift_controller(self):
         """Initialize shift controller with current car config."""
         self.shift_controller = ShiftController(
+            output_device=self.output_device,
             min_gear=self.minGear,
             max_gear=self.maxGear,
-            clutch_key=self.clutch,
-            upshift_key=self.upshift,
-            downshift_key=self.downshift,
             drivetrain=self.car_drivetrain,
-            clutch_enabled=self.enable_clutch,
             shift_factor=self.shift_point_factor,
-            farming=self.farming,
             logger=self.logger,
         )
         self.shift_controller.shift_point = self.shift_point
@@ -378,122 +374,13 @@ class Forza(CarInfo):
         return iteration
 
     def set_output_device(self, device):
-        """Swap output device at runtime (atomic reference swap)."""
+        """Swap output device at runtime. Updates ShiftController reference."""
         old = self.output_device
-        if hasattr(old, 'release_all'):
-            old.release_all()
+        old.release_all()
         self.output_device = device
+        if self.shift_controller is not None:
+            self.shift_controller.output_device = device
         self.logger.info(f'[Output] switched to {type(device).__name__}')
-
-    def shifting(self, iteration, fdp):
-        """shifting func
-
-        Args:
-            iteration (int): iteration
-            fdp (ForzaDataPacket): fdp
-
-        Returns:
-            [int]: iteration
-        """
-        gear = fdp.gear
-        if len(self.shift_point) > 0 and fdp.speed > constants.SPEED_THRESHOLD and self.minGear <= gear <= self.maxGear:
-            iteration = iteration + 1
-
-            # prepare shifting params
-            slip = (fdp.tire_slip_ratio_RL + fdp.tire_slip_ratio_RR) / 2
-            f_slip = (fdp.tire_slip_ratio_FL + fdp.tire_slip_ratio_FR) / 2
-            angle_slip = abs((fdp.tire_slip_angle_RL + fdp.tire_slip_angle_RR) / 2)
-            f_angle_slip = abs((fdp.tire_slip_angle_FL + fdp.tire_slip_angle_FR) / 2)
-            slips = [slip, f_slip, angle_slip, f_angle_slip]
-            speed = fdp.speed * constants.MS_TO_KMH
-            rpm = fdp.current_engine_rpm
-            accel = fdp.accel
-            fired = False
-            # Only create debug log if debug level is enabled (performance optimization)
-            if self.logger.isEnabledFor(logging.DEBUG):
-                debug_log = fdp.to_list(debug_properties)
-                self.logger.debug(f'[{iteration}] {debug_log}')
-
-            # up shift logic
-            if gear < self.maxGear and accel and gear in self.shift_point:
-                target_rpm = self.shift_point[gear]['rpmo'] * self.shift_point_factor
-                target_up_speed = int(self.shift_point[gear]['speed'] * self.shift_point_factor)
-
-                if self.car_drivetrain == constants.DRIVETRAIN_RWD:
-                    # RWD logic
-                    # When gear < 3, the upshift target rpm and speed would be a little bit (95%) lower than AWD when (slip >= 1 or angle_slip >= 1)
-                    # at low gear (<= 3)
-                    if gear < constants.RWD_LOW_GEAR_THRESHOLD and (angle_slip >= 1 or slip >= 1):
-                        fired = self.__up_shift(rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp)
-                    else:
-                        fired = self.__up_shift(rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp)
-                else:
-                    # AWD, FWD logic
-                    fired = self.__up_shift(rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp)
-
-            # down shift logic
-            if not fired and gear > self.minGear:
-                available_gears = self.shift_point.keys()
-                if gear - 1 in available_gears:
-                    lower_gear = gear - 1
-                else:
-                    lower_gear = min(available_gears, key=lambda x: abs(x - (gear - 1)))
-
-                target_down_speed = self.shift_point[lower_gear]['speed'] * self.shift_point_factor
-
-                # RWD logic
-                if self.car_drivetrain == constants.DRIVETRAIN_RWD:
-                    # don't down shift to gear 1 when RWD
-                    if gear >= constants.RWD_LOW_GEAR_THRESHOLD:
-                        self.__down_shift(speed, target_down_speed, slips, iteration, gear, fdp)
-                else:
-                    self.__down_shift(speed, target_down_speed, slips, iteration, gear, fdp)
-
-        return iteration
-
-    def __up_shift(self, rpm, target_rpm, speed, target_up_speed, slips, iteration, gear, fdp):
-        """up shift
-
-        Args:
-            rpm (float): rpm
-            target_rpm (float): target rpm to up shifting
-            speed (float): speed
-            target_up_speed (float): target speed to up shifting
-            slips (float): total combined slip/angles slip of front/rear tires
-            iteration (int): package iteration
-            gear (int): current gear
-            fdp (ForzaPackage): Forza Package
-
-        Returns:
-            _type_: _description_
-        """
-        if rpm > target_rpm and slips[0] < 1 and speed > target_up_speed:
-            self.logger.debug(f'[{iteration}] up shift triggered. rpm > target rpm ({rpm} > {target_rpm}), speed > target up speed ({speed} > {target_up_speed}), slips {slips}')
-            if self.playback_mode:
-                self.logger.info(f'[Playback] up shift gear {gear} -> {gear + 1} (no key press)')
-            else:
-                gear_helper.up_shift_handle(gear, self)
-            return True
-        else:
-            return False
-
-    def __down_shift(self, speed, target_down_speed, slips, iteration, gear, fdp):
-        """down shift
-
-        Args:
-            speed (float): speed
-            target_down_speed (float): target speed to down shifting
-            slips (float): total combined slip/angles slip of front/rear tires
-            iteration (int): package iteration
-            gear (int): current gear
-            fdp (ForzaPackage): Forza Package
-        """
-        if speed < target_down_speed * constants.DOWNSHIFT_SPEED_FACTOR and slips[0] < 1:
-            self.logger.debug(f'[{iteration}] down shift triggered. speed < target down speed ({speed} < {target_down_speed}), slips {slips}')
-            if self.playback_mode:
-                self.logger.info(f'[Playback] down shift gear {gear} -> {gear - 1} (no key press)')
-            else:
-                gear_helper.down_shift_handle(gear, self)
 
     def __exp_farming_setup(self, fdp):
         """exp farming setup
@@ -554,6 +441,8 @@ class Forza(CarInfo):
                 if not display_only:
                     self.__exp_farming_setup(fdp)
 
+                    # Safe: single-writer main thread. Only this thread checks and sets
+                    # shift_pending; worker threads only clear it in finally blocks.
                     if not self.shared_state.shift_pending.is_set():
                         iteration = self._dispatch_controllers(iteration, fdp)
 
