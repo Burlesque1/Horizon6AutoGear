@@ -24,6 +24,8 @@ from horizon6_autogear.core.playback import PlaybackSource
 from horizon6_autogear.shifting.output_device import SharedState
 from horizon6_autogear.shifting.shift_controller import ShiftController
 from horizon6_autogear.shifting.keyboard import KeyboardOutput
+from horizon6_autogear.control.traction_controller import TractionController
+from horizon6_autogear.control.arbiter import Arbiter
 
 debug_properties = [
     'gear', 'current_engine_rpm', 'speed', 'tire_slip_ratio_RL', 'tire_slip_ratio_RR', 'tire_slip_ratio_FL', 'tire_slip_ratio_FR', 'tire_slip_angle_RL', 'tire_slip_angle_RR', 'tire_slip_angle_FL', 'tire_slip_angle_FR', 'acceleration_x', 'acceleration_y',
@@ -93,6 +95,13 @@ class Forza(CarInfo):
         self.shared_state = SharedState()
         self.output_device = KeyboardOutput()
         self.shift_controller = None
+        self.tcs_enabled = constants.TCS_ENABLED
+        self.traction_controller = TractionController(
+            slip_threshold=constants.TCS_SLIP_THRESHOLD,
+            min_speed=constants.TCS_MIN_SPEED,
+            throttle_reduction=constants.TCS_THROTTLE_REDUCTION,
+        )
+        self.arbiter = Arbiter()
 
     def test_gear(self, update_car_gui_func=None, data_source=None):
         """collect gear information
@@ -318,7 +327,7 @@ class Forza(CarInfo):
         self.shift_controller.shift_point = self.shift_point
 
     def _dispatch_controllers(self, iteration, fdp):
-        """Fast tier: shift decision + dispatch. Called when shift_pending is clear."""
+        """Fast tier: TCS + shift decision + arbiter dispatch."""
         iteration = iteration + 1
 
         if self.logger.isEnabledFor(logging.DEBUG):
@@ -334,6 +343,23 @@ class Forza(CarInfo):
 
         if self.shift_controller is None or self.shift_controller.shift_point != self.shift_point:
             self._init_shift_controller()
+
+        tcs_throttle = 1.0
+        if self.tcs_enabled:
+            tcs_throttle = self.traction_controller.compute(fdp)
+
+        driver_throttle = fdp.accel / 255.0
+
+        commanded = self.arbiter.resolve(
+            driver_throttle=driver_throttle,
+            tcs_throttle=tcs_throttle,
+            corner_throttle=1.0,
+            corner_brake=0.0,
+            shift_pending=self.shared_state.shift_pending.is_set(),
+        )
+
+        self.output_device.set_analog('throttle', commanded.throttle)
+        self.output_device.set_analog('brake', commanded.brake)
 
         decision = self.shift_controller.should_shift(fdp)
         if decision is not None:

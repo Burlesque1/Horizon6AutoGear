@@ -123,6 +123,10 @@ RESET_MIN_SPEED = 20  # minimum speed for reset detection
 RESET_COUNT_THRESHOLD = 100  # reset car counter threshold
 RESET_COOLDOWN_SECONDS = 10  # reset cooldown in seconds
 FARMING_BRAKE_INTERVAL = 30  # AFK brake interval in seconds
+TCS_SLIP_THRESHOLD = 0.5
+TCS_MIN_SPEED = 5.0
+TCS_THROTTLE_REDUCTION = 0.3
+TCS_ENABLED = True
 GUI_REFRESH_INTERVAL = 0.016  # GUI refresh interval in seconds (~60Hz)
 UDP_BUFFER_SIZE = 1024  # UDP receive buffer size
 
