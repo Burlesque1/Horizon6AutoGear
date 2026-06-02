@@ -27,6 +27,8 @@ from horizon6_autogear.shifting.keyboard import KeyboardOutput
 from horizon6_autogear.control.traction_controller import TractionController
 from horizon6_autogear.control.arbiter import Arbiter
 from horizon6_autogear.control.corner_controller import CornerController
+from horizon6_autogear.core.reference_profile import ReferenceProfile
+from horizon6_autogear.core.profile_matcher import ProfileMatcher
 
 debug_properties = [
     'gear', 'current_engine_rpm', 'speed', 'tire_slip_ratio_RL', 'tire_slip_ratio_RR', 'tire_slip_ratio_FL', 'tire_slip_ratio_FR', 'tire_slip_angle_RL', 'tire_slip_angle_RR', 'tire_slip_angle_FL', 'tire_slip_angle_FR', 'acceleration_x', 'acceleration_y',
@@ -110,6 +112,81 @@ class Forza(CarInfo):
             self.traction_controller.throttle_reduction = self._saved_tcs_throttle_reduction
         self.arbiter = Arbiter()
         self.corner_controller = CornerController()
+
+        # === reference profile ===
+        self.reference_profile = None
+        self.profile_matcher = None
+        self._last_reference_match = None
+
+    def load_reference_profile(self, path: str):
+        """Load a reference profile and create a matcher."""
+        self.reference_profile = ReferenceProfile.load(path)
+        self.profile_matcher = ProfileMatcher(self.reference_profile)
+        self._last_reference_match = None
+        self.logger.info(f'[Reference] loaded: {path} ({len(self.reference_profile.frames)} frames)')
+
+    def unload_reference_profile(self):
+        """Clear reference profile and matcher."""
+        self.reference_profile = None
+        self.profile_matcher = None
+        self._last_reference_match = None
+        self.logger.info('[Reference] unloaded')
+
+    def _compute_reference_data(self, fdp):
+        """Match current telemetry against reference profile.
+
+        Runs every frame, stores result on self._last_reference_match.
+        Returns dict with reference metrics or None on match failure.
+        """
+        if self.profile_matcher is None or self.reference_profile is None:
+            self._last_reference_match = None
+            return None
+
+        ref_point, new_idx = self.profile_matcher.match(fdp)
+        if ref_point is None:
+            self._last_reference_match = None
+            return None
+
+        profile = self.reference_profile
+        total_dist = profile.metadata.get('total_distance', 1)
+        lap_progress = (ref_point.dist - profile.frames[0].dist) / total_dist if total_dist > 0 else 0
+        lap_progress = max(0.0, min(1.0, lap_progress))
+
+        speed_diff = fdp.speed - ref_point.speed
+
+        gear_suggestion = None
+        if ref_point.gear > fdp.gear:
+            gear_suggestion = 'up'
+        elif ref_point.gear < fdp.gear:
+            gear_suggestion = 'down'
+
+        next_brake_point = None
+        brake_zones = profile.segments.get('brake_zones', [])
+        for bz in brake_zones:
+            dist_ahead = bz['start_dist'] - ref_point.dist
+            if 0 < dist_ahead < 500:
+                next_brake_point = {
+                    'distance': round(dist_ahead, 1),
+                    'severity': bz['severity'],
+                    'suggested_speed': ref_point.speed,
+                }
+                break
+
+        ref_data = {
+            'speed': round(ref_point.speed, 2),
+            'speed_diff': round(speed_diff * 3.6, 1),  # km/h
+            'rpm': round(ref_point.rpm, 0),
+            'gear': ref_point.gear,
+            'gear_suggestion': gear_suggestion,
+            'throttle': round(ref_point.throttle, 3),
+            'brake': round(ref_point.brake, 3),
+            'steer': round(ref_point.steer, 3),
+            'lap_progress': round(lap_progress, 4),
+            'time_delta': round(fdp.cur_lap_time - ref_point.timestamp, 2),
+            'next_brake_point': next_brake_point,
+        }
+        self._last_reference_match = ref_data
+        return ref_data
 
     def test_gear(self, update_car_gui_func=None, data_source=None):
         """collect gear information
@@ -437,8 +514,10 @@ class Forza(CarInfo):
                 if fdp is None or fdp.car_ordinal <= 0:
                     continue
 
+                self._compute_reference_data(fdp)
+
                 if update_car_gui_func is not None and time.time() - refresh_time > constants.GUI_REFRESH_INTERVAL:
-                    self.threadPool.submit(update_car_gui_func, fdp)
+                    self.threadPool.submit(update_car_gui_func, fdp, self._last_reference_match)
                     refresh_time = time.time()
 
                 self.__update_forza_info(fdp, update_tree_func, first_load=first_load)

@@ -69,6 +69,19 @@ function slipColor(val, warn, danger) {
   return '#00ff88';
 }
 
+function speedDiffColor(diffKmh) {
+  if (diffKmh > 5) return '#4ade80';
+  if (diffKmh < -5) return '#ef4444';
+  return '#facc15';
+}
+
+function brakeSeverityColor(severity) {
+  if (severity === 'heavy') return '#ef4444';
+  if (severity === 'medium') return '#f97316';
+  if (severity === 'light') return '#facc15';
+  return '#94a3b8';
+}
+
 // ========== COACH HUD UTILITIES ==========
 function coachLineNorm(raw) { return raw / 127.0; }
 function coachBrakeState(rawDiff) {
@@ -132,6 +145,14 @@ window.resetDashboard = function() {
   if (typeof resetThemeDashboard === 'function') resetThemeDashboard();
 };
 
+window.onReferenceProfileLoad = function(data) {
+  if (typeof initReferenceViz === 'function') initReferenceViz(data);
+};
+
+window.onReferenceProfileUnload = function() {
+  if (typeof clearReferenceViz === 'function') clearReferenceViz();
+};
+
 window.appendLog = function(msg) {
   if (_logPanel) {
     var line = document.createElement('div');
@@ -178,6 +199,19 @@ function _onReady() {
       });
       sel.disabled = false;
     }).catch(function() {});
+    // Populate reference profile dropdown
+    window.pywebview.api.list_references().then(function(refs) {
+      if (!refs) return;
+      var sel = document.getElementById('referenceSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- Reference --</option>';
+      refs.forEach(function(r) {
+        var opt = document.createElement('option');
+        opt.value = r.path;
+        opt.textContent = (r.track_name || r.name) + ' (' + r.lap_time + 's)';
+        sel.appendChild(opt);
+      });
+    }).catch(function() {});
   }
 }
 
@@ -209,6 +243,18 @@ wireBtn('btnPlayback', function(api) {
   }).catch(function(e) { appendLog('[Playback] Error: ' + e); });
 });
 wireBtn('btnExit', function(api) { api.exit(); });
+
+// Reference profile controls
+wireBtn('btnLoadRef', function(api) {
+  var sel = document.getElementById('referenceSelect');
+  if (sel && sel.value) api.load_reference(sel.value);
+});
+wireBtn('btnUnloadRef', function(api) { api.unload_reference(); });
+wireBtn('btnRecordRef', function(api) {
+  var trackName = document.getElementById('settingTrackName');
+  var name = (trackName && trackName.value) || 'default';
+  api.record_reference(name);
+});
 
 // Record toggle
 if (_recBtn) {
