@@ -376,6 +376,14 @@ class Api:
             self.engine.set_output_device(SimulatedOutput())
         return {'mode': mode}
 
+    def set_mode(self, mode):
+        """Switch engine mode: 'coach' or 'semi_auto'."""
+        try:
+            self.engine.set_mode(mode)
+            return {'mode': self.engine.mode}
+        except (ValueError, RuntimeError) as e:
+            return {'error': str(e), 'mode': self.engine.mode}
+
     # ---- Query methods (called from JS) ----
 
     def get_themes(self):

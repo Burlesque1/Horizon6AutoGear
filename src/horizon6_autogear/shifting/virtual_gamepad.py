@@ -1,4 +1,7 @@
 import sys
+import time
+
+import horizon6_autogear.config.config as constants
 
 if sys.platform == 'win32':
     try:
@@ -27,6 +30,11 @@ class GamepadOutput:
         self._controller.connect()
         self._throttle_value = 0.0
         self._brake_value = 0.0
+        self._shifting = False
+
+    @property
+    def shifting(self) -> bool:
+        return self._shifting
 
     def set_analog(self, channel: str, value: float) -> None:
         value = max(0.0, min(1.0, value))
@@ -42,18 +50,30 @@ class GamepadOutput:
                     vigem_client.X360_AXIS.LT, int(value * 255)
                 )
                 self._brake_value = value
+        elif channel == 'steer':
+            pass
 
     def execute_shift(self, direction: str) -> None:
-        if direction == 'up':
-            self._controller.press_button(vigem_client.X360_BUTTON.B)
-            import time
-            time.sleep(0.05)
-            self._controller.release_button(vigem_client.X360_BUTTON.B)
-        elif direction == 'down':
-            self._controller.press_button(vigem_client.X360_BUTTON.A)
-            import time
-            time.sleep(0.05)
-            self._controller.release_button(vigem_client.X360_BUTTON.A)
+        self._shifting = True
+        try:
+            if direction == 'up':
+                self._controller.press_button(vigem_client.X360_BUTTON.LEFT_SHOULDER)
+                time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
+                self._controller.press_button(vigem_client.X360_BUTTON.B)
+                time.sleep(constants.KEY_PRESS_DURATION)
+                self._controller.release_button(vigem_client.X360_BUTTON.B)
+                time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
+                self._controller.release_button(vigem_client.X360_BUTTON.LEFT_SHOULDER)
+            elif direction == 'down':
+                self._controller.press_button(vigem_client.X360_BUTTON.LEFT_SHOULDER)
+                time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
+                self._controller.press_button(vigem_client.X360_BUTTON.A)
+                time.sleep(constants.KEY_PRESS_DURATION)
+                self._controller.release_button(vigem_client.X360_BUTTON.A)
+                time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
+                self._controller.release_button(vigem_client.X360_BUTTON.LEFT_SHOULDER)
+        finally:
+            self._shifting = False
 
     def release_all(self) -> None:
         self.set_analog('throttle', 0.0)

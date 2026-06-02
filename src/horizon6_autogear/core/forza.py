@@ -29,6 +29,9 @@ from horizon6_autogear.control.arbiter import Arbiter
 from horizon6_autogear.control.corner_controller import CornerController
 from horizon6_autogear.core.reference_profile import ReferenceProfile
 from horizon6_autogear.core.profile_matcher import ProfileMatcher
+from horizon6_autogear.control.pid_controller import PIDController
+from horizon6_autogear.control.semi_auto_controller import SemiAutoController
+from horizon6_autogear.control.latency_metrics import LatencyCollector
 
 debug_properties = [
     'gear', 'current_engine_rpm', 'speed', 'tire_slip_ratio_RL', 'tire_slip_ratio_RR', 'tire_slip_ratio_FL', 'tire_slip_ratio_FR', 'tire_slip_angle_RL', 'tire_slip_angle_RR', 'tire_slip_angle_FL', 'tire_slip_angle_FR', 'acceleration_x', 'acceleration_y',
@@ -118,6 +121,11 @@ class Forza(CarInfo):
         self.profile_matcher = None
         self._last_reference_match = None
 
+        # === semi-auto mode ===
+        self.mode = 'coach'
+        self.semi_auto_controller = None
+        self.latency_collector = None
+
     def load_reference_profile(self, path: str):
         """Load a reference profile and create a matcher."""
         self.reference_profile = ReferenceProfile.load(path)
@@ -164,11 +172,17 @@ class Forza(CarInfo):
         brake_zones = profile.segments.get('brake_zones', [])
         for bz in brake_zones:
             dist_ahead = bz['start_dist'] - ref_point.dist
+            if dist_ahead <= 0 and bz.get('start_pos'):
+                sp = bz['start_pos']
+                dist_ahead = ((sp[0] - fdp.position_x) ** 2 +
+                              (sp[1] - fdp.position_y) ** 2 +
+                              (sp[2] - fdp.position_z) ** 2) ** 0.5
             if 0 < dist_ahead < 500:
                 next_brake_point = {
                     'distance': round(dist_ahead, 1),
                     'severity': bz['severity'],
                     'suggested_speed': ref_point.speed,
+                    'entry_speed': bz.get('entry_speed', 0.0),
                 }
                 break
 
@@ -433,16 +447,42 @@ class Forza(CarInfo):
 
         corner_throttle, corner_brake = self.corner_controller.compute(fdp)
 
+        semi_auto_brake = 0.0
+        semi_auto_throttle_override = None
+        if self.mode == 'semi_auto' and self.semi_auto_controller is not None:
+            lc = self.latency_collector
+            ref_data = self._last_reference_match
+
+            if lc:
+                lc.start_frame()
+                lc.record_match(0.0)
+                t0 = time.monotonic()
+
+            sa_decision = self.semi_auto_controller.compute(fdp, ref_data)
+
+            if lc:
+                lc.record_pid((time.monotonic() - t0) * 1000)
+
+            semi_auto_brake = sa_decision.brake_force
+            semi_auto_throttle_override = sa_decision.throttle_override
+
         commanded = self.arbiter.resolve(
             driver_throttle=driver_throttle,
             tcs_throttle=tcs_throttle,
             corner_throttle=corner_throttle,
             corner_brake=corner_brake,
             shift_pending=self.shared_state.shift_pending.is_set(),
+            semi_auto_brake=semi_auto_brake,
+            semi_auto_throttle_override=semi_auto_throttle_override,
         )
 
+        t1 = time.monotonic()
         self.output_device.set_analog('throttle', commanded.throttle)
         self.output_device.set_analog('brake', commanded.brake)
+
+        if self.latency_collector:
+            self.latency_collector.record_gamepad((time.monotonic() - t1) * 1000)
+            self.latency_collector.end_frame()
 
         decision = self.shift_controller.should_shift(fdp)
         if decision is not None:
@@ -464,6 +504,44 @@ class Forza(CarInfo):
         if self.shift_controller is not None:
             self.shift_controller.output_device = device
         self.logger.info(f'[Output] switched to {type(device).__name__}')
+
+    def set_mode(self, mode: str):
+        """Switch between 'coach' and 'semi_auto' modes."""
+        if mode == self.mode:
+            return
+
+        if mode == 'coach':
+            self.semi_auto_controller = None
+            self.latency_collector = None
+            self.set_output_device(KeyboardOutput(
+                clutch_enabled=self.enable_clutch,
+                farming=self.farming,
+            ))
+            self.mode = 'coach'
+            self.logger.info('[Mode] switched to coach')
+        elif mode == 'semi_auto':
+            if self.reference_profile is None:
+                raise ValueError('Cannot switch to semi_auto without a reference profile')
+            pid = PIDController(
+                kp=constants.PID_BRAKE_KP,
+                ki=constants.PID_BRAKE_KI,
+                kd=constants.PID_BRAKE_KD,
+                integral_limit=constants.PID_INTEGRAL_LIMIT,
+            )
+            self.semi_auto_controller = SemiAutoController(pid)
+            self.latency_collector = LatencyCollector()
+            try:
+                from horizon6_autogear.shifting.virtual_gamepad import GamepadOutput
+                self.set_output_device(GamepadOutput())
+            except RuntimeError as e:
+                self.semi_auto_controller = None
+                self.latency_collector = None
+                self.logger.error(f'[Mode] semi_auto failed: {e}')
+                raise
+            self.mode = 'semi_auto'
+            self.logger.info('[Mode] switched to semi_auto')
+        else:
+            raise ValueError(f'Unknown mode: {mode}')
 
     def __exp_farming_setup(self, fdp):
         """exp farming setup

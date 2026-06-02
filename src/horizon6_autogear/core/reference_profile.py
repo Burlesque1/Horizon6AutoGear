@@ -102,13 +102,16 @@ class ReferenceProfile:
     def extract_brake_zones(self, threshold: float = 0.1):
         """Find contiguous frames where brake > threshold.
 
-        Returns list of dicts: {start_dist, end_dist, max_brake, severity}.
+        Returns list of dicts: {start_dist, end_dist, max_brake, severity,
+        entry_speed, start_frame_idx, start_pos}.
         Severity: light if max_brake < 0.4, medium if 0.4-0.7, heavy if > 0.7.
         """
         zones = []
         in_zone = False
         zone_start = 0.0
         max_brake = 0.0
+        entry_speed = 0.0
+        zone_start_idx = 0
 
         for i, frame in enumerate(self.frames):
             if frame.brake > threshold:
@@ -116,17 +119,23 @@ class ReferenceProfile:
                     in_zone = True
                     zone_start = frame.dist
                     max_brake = frame.brake
+                    entry_speed = frame.speed
+                    zone_start_idx = i
                 else:
                     if frame.brake > max_brake:
                         max_brake = frame.brake
             else:
                 if in_zone:
-                    zones.append(_brake_zone(zone_start, self.frames[i - 1].dist, max_brake))
+                    zones.append(_brake_zone(
+                        zone_start, self.frames[i - 1].dist, max_brake,
+                        entry_speed, zone_start_idx, self.frames[zone_start_idx]))
                     in_zone = False
                     max_brake = 0.0
 
         if in_zone:
-            zones.append(_brake_zone(zone_start, self.frames[-1].dist, max_brake))
+            zones.append(_brake_zone(
+                zone_start, self.frames[-1].dist, max_brake,
+                entry_speed, zone_start_idx, self.frames[zone_start_idx]))
 
         self.segments['brake_zones'] = zones
         return zones
@@ -222,13 +231,20 @@ def _brake_severity(max_brake: float) -> str:
     return 'heavy'
 
 
-def _brake_zone(start_dist: float, end_dist: float, max_brake: float) -> dict:
-    return {
+def _brake_zone(start_dist: float, end_dist: float, max_brake: float,
+                entry_speed: float = 0.0, start_frame_idx: int = 0,
+                start_frame: ReferencePoint = None) -> dict:
+    zone = {
         'start_dist': round(start_dist, 2),
         'end_dist': round(end_dist, 2),
         'max_brake': round(max_brake, 3),
         'severity': _brake_severity(max_brake),
+        'entry_speed': round(entry_speed, 3),
+        'start_frame_idx': start_frame_idx,
     }
+    if start_frame is not None:
+        zone['start_pos'] = (start_frame.pos_x, start_frame.pos_y, start_frame.pos_z)
+    return zone
 
 
 def _load_recording(path: str) -> dict:
