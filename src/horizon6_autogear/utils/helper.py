@@ -242,7 +242,6 @@ def dump_config(forza: CarInfo, config_version: ConfigVersion = constants.DEFAUL
             'gear_ratios': forza.gear_ratios,
             'rpm_torque_map': forza.rpm_torque_map,
             'shift_point': forza.shift_point,
-            'records': forza.records,
         }
 
         with open(forza.get_config_path(config_name), "w") as f:

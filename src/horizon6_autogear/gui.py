@@ -485,6 +485,8 @@ class Api:
 
     def list_references(self):
         """List available reference profiles for current car."""
+        if not self.engine:
+            return []
         ref_dir = os.path.join(self.engine.config_folder, 'references')
         if not os.path.exists(ref_dir):
             return []
