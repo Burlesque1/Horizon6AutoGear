@@ -4,11 +4,13 @@ Replaces gui_glass.py with a pywebview-based UI that renders the HTML mockup.
 Python backend owns the Forza engine and pushes telemetry via evaluate_js().
 """
 
+import glob
 import json
 import logging
 import os
 import sys
 import threading
+import time
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 
@@ -29,6 +31,7 @@ import horizon6_autogear.shifting.keyboard as keyboard_helper
 from horizon6_autogear.core.forza import Forza
 from horizon6_autogear.core.recorder import Recorder
 from horizon6_autogear.core.playback import PlaybackSource
+from horizon6_autogear.core.reference_profile import ReferenceProfile
 from horizon6_autogear.utils.logger import Logger
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -327,6 +330,60 @@ class Api:
             constants.OFFROAD_RALLY_SHIFT_FACTOR if enabled
             else constants.SHIFT_FACTOR)
 
+    def toggle_tcs(self):
+        self.engine.tcs_enabled = not self.engine.tcs_enabled
+        helper.dump_settings(self.engine)
+        return self.engine.tcs_enabled
+
+    def get_tcs_state(self):
+        return self.engine.tcs_enabled
+
+    def get_tcs_params(self):
+        tc = self.engine.traction_controller
+        return {
+            'enabled': self.engine.tcs_enabled,
+            'slip_threshold': tc.slip_threshold,
+            'throttle_reduction': tc.throttle_reduction,
+            'recovery_margin': tc.slip_threshold - tc.recovery_threshold,
+        }
+
+    def set_tcs_params(self, slip_threshold=None, throttle_reduction=None, recovery_margin=None):
+        tc = self.engine.traction_controller
+        if slip_threshold is not None:
+            tc.slip_threshold = float(slip_threshold)
+        if throttle_reduction is not None:
+            tc.throttle_reduction = float(throttle_reduction)
+        if recovery_margin is not None:
+            tc.recovery_threshold = tc.slip_threshold - float(recovery_margin)
+        helper.dump_settings(self.engine)
+
+    def set_output_mode(self, mode):
+        from horizon6_autogear.shifting.keyboard import KeyboardOutput
+        from horizon6_autogear.shifting.simulated_output import SimulatedOutput
+        from horizon6_autogear.shifting.virtual_gamepad import GamepadOutput
+
+        if mode == 'keyboard':
+            self.engine.set_output_device(KeyboardOutput(
+                clutch_enabled=self.engine.enable_clutch,
+                farming=self.engine.farming,
+            ))
+        elif mode == 'gamepad':
+            try:
+                self.engine.set_output_device(GamepadOutput())
+            except RuntimeError as e:
+                return {'error': str(e)}
+        elif mode == 'simulated':
+            self.engine.set_output_device(SimulatedOutput())
+        return {'mode': mode}
+
+    def set_mode(self, mode):
+        """Switch engine mode: 'coach' or 'semi_auto'."""
+        try:
+            self.engine.set_mode(mode)
+            return {'mode': self.engine.mode}
+        except (ValueError, RuntimeError) as e:
+            return {'error': str(e), 'mode': self.engine.mode}
+
     # ---- Query methods (called from JS) ----
 
     def get_themes(self):
@@ -370,7 +427,8 @@ class Api:
                 'clutch': self.engine.clutch,
                 'upshift': self.engine.upshift,
                 'downshift': self.engine.downshift,
-            }
+            },
+            'tcs': self.get_tcs_params(),
         }
 
     def get_i18n(self):
@@ -411,6 +469,95 @@ class Api:
 
     # ---- Callbacks from Forza engine ----
 
+    def load_reference(self, path: str):
+        """Load a reference profile."""
+        self.engine.load_reference_profile(path)
+        profile = self.engine.reference_profile
+        if profile and self._window:
+            meta = profile.metadata
+            self._js_call(f"onReferenceProfileLoad({json.dumps({'metadata': meta, 'segments': profile.segments})})")
+
+    def unload_reference(self):
+        """Unload the current reference profile."""
+        self.engine.unload_reference_profile()
+        if self._window:
+            self._js_call("onReferenceProfileUnload()")
+
+    def list_references(self):
+        """List available reference profiles for current car."""
+        if not self.engine:
+            return []
+        ref_dir = os.path.join(self.engine.config_folder, 'references')
+        if not os.path.exists(ref_dir):
+            return []
+        car_ordinal = self.engine.ordinal
+        pattern = os.path.join(ref_dir, f'{car_ordinal}-*.ref.json')
+        files = glob.glob(pattern)
+        results = []
+        for f in files:
+            try:
+                profile = ReferenceProfile.load(f)
+                results.append({
+                    'path': f,
+                    'name': os.path.basename(f),
+                    'track_name': profile.metadata.get('track_name', ''),
+                    'lap_time': profile.metadata.get('lap_time', 0),
+                    'frame_count': profile.metadata.get('frame_count', 0),
+                })
+            except Exception:
+                pass
+        return results
+
+    def record_reference(self, track_name: str):
+        """Start recording for reference profile creation.
+
+        Records telemetry until a full lap is detected, then parses
+        the recording into a reference profile and saves it.
+        """
+        if self.engine.recorder is not None:
+            return  # Already recording
+
+        self._ref_track_name = track_name
+        self._ref_recording = True
+        rec_dir = os.path.join(self.engine.config_folder, 'recordings')
+        os.makedirs(rec_dir, exist_ok=True)
+        self.engine.recorder = Recorder(output_dir=rec_dir)
+        self.logger.info(f'[Reference] Recording started for track: {track_name}')
+
+    def _finalize_reference_recording(self):
+        """Convert completed recording to reference profile."""
+        if not hasattr(self, '_ref_recording') or not self._ref_recording:
+            return
+        self._ref_recording = False
+        recording_path = None
+        if self.engine.recorder:
+            try:
+                recording_path = self.engine.recorder.save(metadata={
+                    'format': self.engine.packet_format,
+                    'car_ordinal': self.engine.ordinal,
+                })
+            except ValueError as e:
+                self.logger.info(f'[Reference] Save skipped: {e}')
+            finally:
+                self.engine.recorder = None
+
+        if not recording_path:
+            return
+
+        try:
+            profile = ReferenceProfile.from_recording(recording_path)
+            ref_dir = os.path.join(self.engine.config_folder, 'references')
+            os.makedirs(ref_dir, exist_ok=True)
+            car_ord = self.engine.ordinal or 'unknown'
+            track = getattr(self, '_ref_track_name', 'default')
+            save_path = os.path.join(ref_dir, f'{car_ord}-{track}.ref.json')
+            profile.save(save_path)
+            self.logger.info(f'[Reference] Profile saved: {os.path.basename(save_path)}')
+            # Auto-load the new profile
+            self.load_reference(save_path)
+        except Exception as e:
+            self.logger.info(f'[Reference] Failed to create profile: {e}')
+
     def update_tree(self):
         if len(self.engine.shift_point) == 0:
             return
@@ -422,7 +569,7 @@ class Api:
             }
         self._js_call(f"updateShiftPoints({json.dumps(data)})")
 
-    def update_car_info(self, fdp):
+    def update_car_info(self, fdp, reference_data=None):
         if not self.engine.isRunning:
             return
 
@@ -505,6 +652,8 @@ class Api:
                        'wheel_speed': round(fdp.wheel_rotation_speed_RR)},
             },
         }
+        if reference_data:
+            data['reference'] = reference_data
         self._js_call(f"onTelemetry({json.dumps(data)})")
 
     # ---- Internal helpers ----
@@ -553,6 +702,9 @@ class Api:
                     self.logger.warning(f"Failed to start keyboard listener: {e}")
 
     def _save_recorder(self):
+        if getattr(self, '_ref_recording', False):
+            self._finalize_reference_recording()
+            return
         if self.engine.recorder is not None:
             try:
                 path = self.engine.recorder.save(metadata={

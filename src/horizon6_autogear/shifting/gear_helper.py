@@ -1,12 +1,8 @@
-# Standard library
-import time
-
 # Third-party
 import numpy as np
 
 # Local
 import horizon6_autogear.config.config as constants
-import horizon6_autogear.shifting.keyboard as keyboard_helper
 from horizon6_autogear.core.car_info import CarInfo
 
 # === Optimal Shift Point ===
@@ -277,78 +273,4 @@ def calculate_optimal_shift_point(forza: CarInfo):
     return res
 
 
-def blip_throttle():
-    """blip throttle
-    """
-    keyboard_helper.pressdown_str(constants.ACCELERATION)
-    time.sleep(constants.BLIP_THROTTLE_DURATION)
-    keyboard_helper.release_str(constants.ACCELERATION)
 
-
-def up_shift_handle(gear: int, forza: CarInfo):
-    """up shift
-
-    Args:
-        gear (int): current gear
-        forza (CarInfo): forza
-    """
-    cur = time.time()
-    if gear < forza.maxGear and cur - forza.last_upshift >= constants.UP_SHIFT_COOL_DOWN:
-        forza.logger.info(f'[UpShift] up shift fired. gear < maxGear ({gear}, {forza.maxGear}) and gap >= upShiftCoolDown ({cur - forza.last_upshift}, {constants.UP_SHIFT_COOL_DOWN})')
-        if forza.clutch:
-
-            def press():
-                keyboard_helper.pressdown_str(forza.clutch)
-                forza.logger.debug(f'[UpShift] clutch {forza.clutch} down on {gear}')
-
-            forza.threadPool.submit(press)
-
-        time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
-        # up shift and delay
-        keyboard_helper.press_str(forza.upshift)
-        forza.logger.debug(f'[UpShift] upshift {forza.upshift} down and up on {gear}')
-
-        time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
-        if forza.clutch:
-            # release clutch
-            keyboard_helper.release_str(forza.clutch)
-            forza.logger.debug(f'[UpShift] clutch {forza.clutch} up on {gear}')
-
-        forza.last_upshift = cur
-    else:
-        forza.logger.debug(f'[UpShift] skip up shift. gear >= maxGear ({gear}, {forza.maxGear}) or gap < upShiftCoolDown ({cur - forza.last_upshift}, {constants.UP_SHIFT_COOL_DOWN})')
-
-
-def down_shift_handle(gear: int, forza: CarInfo):
-    """down shift
-
-    Args:
-        gear (int): current gear
-        forza (CarInfo): forza
-    """
-    cur = time.time()
-    if gear > forza.minGear and cur - forza.last_downshift >= constants.DOWN_SHIFT_COOL_DOWN:
-        forza.logger.info(f'[DownShift] down shift fired. gear > minGear ({gear}, {forza.minGear}) or gap >= downShiftCoolDown ({cur - forza.last_downshift}, {constants.DOWN_SHIFT_COOL_DOWN})')
-        forza.last_downshift = cur
-
-        if forza.clutch:
-            # press and hold clutch, then delay
-            keyboard_helper.pressdown_str(forza.clutch)
-            forza.logger.debug(f'[DownShift] clutch {forza.clutch} down on {gear}')
-
-            # blip throttle
-            if not forza.farming:
-                forza.threadPool.submit(blip_throttle)
-
-        time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
-        # down shift and delay
-        keyboard_helper.press_str(forza.downshift)
-        forza.logger.debug(f'[DownShift] downshift {forza.downshift} down and up on {gear}')
-
-        time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
-        if forza.clutch:
-            # release clutch
-            keyboard_helper.release_str(forza.clutch)
-            forza.logger.debug(f'[DownShift] clutch {forza.clutch} up on {gear}')
-    else:
-        forza.logger.debug(f'[DownShift] skip down shift. gear <= minGear ({gear}, {forza.minGear}) or gap < downShiftCoolDown ({cur - forza.last_downshift}, {constants.DOWN_SHIFT_COOL_DOWN})')

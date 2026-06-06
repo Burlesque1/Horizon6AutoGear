@@ -248,3 +248,64 @@ def press_brake(forza: CarInfo):
     pressdown_str(constants.BRAKE)
     time.sleep(constants.BRAKE_DURATION)
     release_str(constants.BRAKE)
+
+
+class KeyboardOutput:
+    """OutputDevice implementation using keyboard simulation.
+
+    Translates float [0.0, 1.0] values to binary press/release based on
+    threshold crossing. TCS with keyboard produces on/off cuts, not proportional.
+    """
+    THROTTLE_THRESHOLD = 0.1
+
+    def __init__(self, clutch_enabled=True, farming=False):
+        self._throttle_pressed = False
+        self._brake_pressed = False
+        self._clutch_enabled = clutch_enabled
+        self._farming = farming
+
+    def set_analog(self, channel: str, value: float) -> None:
+        if channel == 'throttle':
+            if value > self.THROTTLE_THRESHOLD and not self._throttle_pressed:
+                pressdown_str(constants.ACCELERATION)
+                self._throttle_pressed = True
+            elif value <= self.THROTTLE_THRESHOLD and self._throttle_pressed:
+                release_str(constants.ACCELERATION)
+                self._throttle_pressed = False
+        elif channel == 'brake':
+            if value > self.THROTTLE_THRESHOLD and not self._brake_pressed:
+                pressdown_str(constants.BRAKE)
+                self._brake_pressed = True
+            elif value <= self.THROTTLE_THRESHOLD and self._brake_pressed:
+                release_str(constants.BRAKE)
+                self._brake_pressed = False
+
+    def execute_shift(self, direction: str) -> None:
+        if direction == 'up':
+            if self._clutch_enabled:
+                pressdown_str(constants.CLUTCH)
+            time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
+            press_str(constants.UPSHIFT)
+            time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
+            if self._clutch_enabled:
+                release_str(constants.CLUTCH)
+        elif direction == 'down':
+            if self._clutch_enabled:
+                pressdown_str(constants.CLUTCH)
+                if not self._farming:
+                    pressdown_str(constants.ACCELERATION)
+                    time.sleep(constants.BLIP_THROTTLE_DURATION)
+                    release_str(constants.ACCELERATION)
+            time.sleep(constants.DELAY_CLUTCH_TO_SHIFT)
+            press_str(constants.DOWNSHIFT)
+            time.sleep(constants.DELAY_SHIFT_TO_CLUTCH)
+            if self._clutch_enabled:
+                release_str(constants.CLUTCH)
+
+    def release_all(self) -> None:
+        if self._throttle_pressed:
+            release_str(constants.ACCELERATION)
+            self._throttle_pressed = False
+        if self._brake_pressed:
+            release_str(constants.BRAKE)
+            self._brake_pressed = False

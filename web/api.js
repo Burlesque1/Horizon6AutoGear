@@ -69,6 +69,19 @@ function slipColor(val, warn, danger) {
   return '#00ff88';
 }
 
+function speedDiffColor(diffKmh) {
+  if (diffKmh > 5) return '#4ade80';
+  if (diffKmh < -5) return '#ef4444';
+  return '#facc15';
+}
+
+function brakeSeverityColor(severity) {
+  if (severity === 'heavy') return '#ef4444';
+  if (severity === 'medium') return '#f97316';
+  if (severity === 'light') return '#facc15';
+  return '#94a3b8';
+}
+
 // ========== COACH HUD UTILITIES ==========
 function coachLineNorm(raw) { return raw / 127.0; }
 function coachBrakeState(rawDiff) {
@@ -132,6 +145,14 @@ window.resetDashboard = function() {
   if (typeof resetThemeDashboard === 'function') resetThemeDashboard();
 };
 
+window.onReferenceProfileLoad = function(data) {
+  if (typeof initReferenceViz === 'function') initReferenceViz(data);
+};
+
+window.onReferenceProfileUnload = function() {
+  if (typeof clearReferenceViz === 'function') clearReferenceViz();
+};
+
 window.appendLog = function(msg) {
   if (_logPanel) {
     var line = document.createElement('div');
@@ -178,6 +199,19 @@ function _onReady() {
       });
       sel.disabled = false;
     }).catch(function() {});
+    // Populate reference profile dropdown
+    window.pywebview.api.list_references().then(function(refs) {
+      if (!refs) return;
+      var sel = document.getElementById('referenceSelect');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">-- Reference --</option>';
+      refs.forEach(function(r) {
+        var opt = document.createElement('option');
+        opt.value = r.path;
+        opt.textContent = (r.track_name || r.name) + ' (' + r.lap_time + 's)';
+        sel.appendChild(opt);
+      });
+    }).catch(function() {});
   }
 }
 
@@ -209,6 +243,18 @@ wireBtn('btnPlayback', function(api) {
   }).catch(function(e) { appendLog('[Playback] Error: ' + e); });
 });
 wireBtn('btnExit', function(api) { api.exit(); });
+
+// Reference profile controls
+wireBtn('btnLoadRef', function(api) {
+  var sel = document.getElementById('referenceSelect');
+  if (sel && sel.value) api.load_reference(sel.value);
+});
+wireBtn('btnUnloadRef', function(api) { api.unload_reference(); });
+wireBtn('btnRecordRef', function(api) {
+  var trackName = document.getElementById('settingTrackName');
+  var name = (trackName && trackName.value) || 'default';
+  api.record_reference(name);
+});
 
 // Record toggle
 if (_recBtn) {
@@ -257,6 +303,17 @@ function wireSettings() {
   toggleSwitch(document.getElementById('toggleClutch'), 'clutch');
   toggleSwitch(document.getElementById('toggleFarm'), 'farm');
   toggleSwitch(document.getElementById('toggleOffroad'), 'offroad');
+  toggleSwitch(document.getElementById('toggleTcs'), 'tcs');
+
+  // TCS range inputs
+  ['tcsSlipThreshold', 'tcsThrottleReduction', 'tcsRecoveryMargin'].forEach(function(id) {
+    var el = document.getElementById(id);
+    var valEl = document.getElementById(id + 'Val');
+    if (el) el.addEventListener('input', function() {
+      if (valEl) valEl.textContent = this.value;
+      _pendingSettings[id] = parseFloat(this.value);
+    });
+  });
 
   // Shortcut dropdowns
   var shortcutKeys = ['clutch', 'upshift', 'downshift'];
@@ -284,6 +341,14 @@ function wireSettings() {
     if ('farm' in _pendingSettings) api.toggle_farm(_pendingSettings.farm);
     if ('theme' in _pendingSettings) api.switch_theme(_pendingSettings.theme);
     if ('offroad' in _pendingSettings) api.toggle_offroad(_pendingSettings.offroad);
+    if ('tcs' in _pendingSettings) api.toggle_tcs();
+    if ('tcsSlipThreshold' in _pendingSettings || 'tcsThrottleReduction' in _pendingSettings || 'tcsRecoveryMargin' in _pendingSettings) {
+      api.set_tcs_params(
+        _pendingSettings.tcsSlipThreshold || null,
+        _pendingSettings.tcsThrottleReduction || null,
+        _pendingSettings.tcsRecoveryMargin || null
+      );
+    }
     if ('shortcut_clutch' in _pendingSettings) api.set_shortcut('clutch', _pendingSettings.shortcut_clutch);
     if ('shortcut_upshift' in _pendingSettings) api.set_shortcut('upshift', _pendingSettings.shortcut_upshift);
     if ('shortcut_downshift' in _pendingSettings) api.set_shortcut('downshift', _pendingSettings.shortcut_downshift);

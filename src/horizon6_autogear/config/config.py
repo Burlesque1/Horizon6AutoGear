@@ -123,6 +123,10 @@ RESET_MIN_SPEED = 20  # minimum speed for reset detection
 RESET_COUNT_THRESHOLD = 100  # reset car counter threshold
 RESET_COOLDOWN_SECONDS = 10  # reset cooldown in seconds
 FARMING_BRAKE_INTERVAL = 30  # AFK brake interval in seconds
+TCS_SLIP_THRESHOLD = 0.5
+TCS_MIN_SPEED = 5.0
+TCS_THROTTLE_REDUCTION = 0.3
+TCS_ENABLED = True
 GUI_REFRESH_INTERVAL = 0.016  # GUI refresh interval in seconds (~60Hz)
 UDP_BUFFER_SIZE = 1024  # UDP receive buffer size
 
@@ -182,6 +186,15 @@ COACH_HUD_WIDTH = 600
 COACH_HUD_HEIGHT = 80
 COACH_HUD_ALPHA = 0.85             # overlay transparency (0.0-1.0)
 
+SEMI_AUTO_BRAKE_ANTICIPATION_HEAVY = 80.0
+SEMI_AUTO_BRAKE_ANTICIPATION_MEDIUM = 60.0
+SEMI_AUTO_BRAKE_ANTICIPATION_LIGHT = 50.0
+PID_BRAKE_KP = 0.5
+PID_BRAKE_KI = 0.05
+PID_BRAKE_KD = 0.1
+PID_INTEGRAL_LIMIT = 2.0
+BRAKE_RELEASE_HYSTERESIS = 0.98
+
 SETTINGS_WIDGET_START_Y = 0.03
 SETTINGS_WIDGET_SPACING = 0.05
 CAR_PERF_Y_OFFSET = 0.28  # vertical offset from CAR_INFO_TOPBOUND_RELY
@@ -234,6 +247,7 @@ STOP_RECORD_TXT = ['Stop Rec', '停止录制']
 STOP_PLAYBACK_TXT = ['Stop Play', '停止回放']
 LIVE_TORQUE_TAB_TXT = ['Live Torque', '实时扭矩']
 COACH_MODE_TXT = ['Coach', '教练']
+TCS_LABEL = ['TCS', '牵引力控制']
 
 BOOST_TXT = ['Boost', '增压']
 FUEL_TXT = ['Fuel', '燃油']

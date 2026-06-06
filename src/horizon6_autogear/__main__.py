@@ -35,11 +35,14 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog="""
 Keyboard Shortcuts:
-  F10  Collect gear data
-  F8   Analyze collected data
-  F7   Start/Stop auto shifting
-  Pause Stop the program
-  End  Exit the program
+  F1   Switch to live tab
+  F2   Collect gear data
+  F3   Analyze collected data
+  F4   Start/Stop auto shifting
+  F5   Toggle recording
+  F6   Observe mode (no shifting)
+  F9   Stop the program
+  F12  Exit the program
 
     """
 )
